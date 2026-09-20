@@ -1,0 +1,2361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>pottery STUDIO</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,300;1,400;1,500&family=DM+Sans:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    /* ═══ Core Harmony — Moody Dark Variant ═══ */
+    :root {
+      --bg-primary:    #1a0d05;
+      --bg-secondary:  #221107;
+      --bg-warm-white: #2e1609;
+      --surface-light: #3a1f10;
+      --surface-medium:#4a2814;
+      --text-primary:  #f4dfb8;
+      --text-secondary:#e6c89a;
+      --text-muted:    #b89878;
+      --text-light:    #8e7252;
+      --accent-olive:     #c8d68a;
+      --accent-olive-dark:#a0b070;
+      --accent-brown:     #d4884a;
+      --accent-stone:     #b89878;
+      --border-subtle:    #6b3f24;
+      --border-light:     #4a2814;
+      --font-italic: 'Cormorant Garamond', serif;
+      --font-sans: 'DM Sans', system-ui, sans-serif;
+      --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+      --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      background: var(--bg-primary);
+      overflow:hidden;
+      font-family: var(--font-sans);
+      color: var(--text-primary);
+      user-select:none;
+      -webkit-font-smoothing: antialiased;
+    }
+    button { font-family: inherit; }
+
+    /* Hide in-app chrome while title/instructions overlay is showing */
+    body.boot-stage #top-bar,
+    body.boot-stage #status,
+    body.boot-stage #ui,
+    body.boot-stage .cam-wrap,
+    body.boot-stage #drag-hint { display: none !important; }
+
+    #three-canvas { position:fixed; inset:0; width:100vw; height:100vh; display:block; }
+
+    /* ═══ Top Editorial Navigation Bar ═══ */
+    #top-bar {
+      position:fixed; top:0; left:0; right:0; z-index:25;
+      display:grid; grid-template-columns: 1fr 1fr 1fr;
+      align-items:center;
+      padding: 18px 32px 14px;
+      background: linear-gradient(to bottom, rgba(26,13,5,0.92) 0%, rgba(26,13,5,0.65) 70%, rgba(26,13,5,0) 100%);
+      pointer-events:none;
+    }
+    #top-bar > * { pointer-events:auto; }
+    .brand {
+      display:flex; align-items:baseline; gap:7px;
+      font-size: 26px; line-height:1;
+    }
+    .brand-italic {
+      font-family: var(--font-italic); font-style:italic; font-weight:400;
+      color: var(--accent-olive); letter-spacing: 0.5px; font-size: 1.05em;
+    }
+    .brand-bold {
+      font-family: var(--font-sans); font-weight:900;
+      color: var(--text-primary); text-transform:uppercase;
+      letter-spacing: 0.04em; font-size: 0.92em;
+    }
+    .top-title {
+      text-align:center;
+      font-family: var(--font-italic); font-style:italic; font-weight:400;
+      color: var(--text-secondary); font-size: 17px; letter-spacing: 0.3px;
+    }
+    .top-meta {
+      text-align:right;
+      font-family: var(--font-mono); font-weight:400;
+      color: var(--text-muted); font-size: 11px;
+      letter-spacing: 0.15em; text-transform:uppercase;
+    }
+    .top-meta span { display:block; line-height:1.5; }
+    .top-meta .num { color: var(--text-primary); font-weight:500; }
+
+    /* ═══ Status ═══ */
+    #status {
+      position:fixed; top:64px; left:50%; transform:translateX(-50%);
+      display:flex; align-items:center; gap:10px;
+      padding: 9px 20px;
+      background: var(--bg-warm-white);
+      border: 1px solid var(--border-subtle);
+      border-radius: 0;
+      font-family: var(--font-mono);
+      font-size:11px; letter-spacing:0.18em;
+      text-transform:uppercase; color:var(--text-muted);
+      z-index:20; white-space:nowrap;
+      transition: color .4s var(--ease), border-color .4s var(--ease), background .4s var(--ease);
+    }
+    #status.hand   { color: var(--accent-olive); border-color: var(--accent-olive); }
+    #status.sculpt { color: var(--accent-olive-dark); border-color: var(--accent-olive-dark); background: var(--surface-light); }
+    #status-dot { width:5px; height:5px; border-radius:50%; background:currentColor; flex-shrink:0; }
+
+    /* ═══ Webcam ═══ */
+    .cam-wrap {
+      position:fixed; bottom:24px; left:24px; z-index:20;
+      background: var(--bg-warm-white);
+      border: 1px solid var(--border-subtle);
+      padding: 6px 6px 22px;
+    }
+    #webcam { width:220px; height:165px; display:block; object-fit:cover; transform:scaleX(-1); filter:saturate(0.7) contrast(0.95); }
+    #hand-overlay { position:absolute; top:6px; left:6px; width:220px; height:165px; pointer-events:none; transform:scaleX(-1); }
+    .cam-label {
+      position:absolute; bottom:5px; left:8px; right:8px;
+      display:flex; justify-content:space-between;
+      font-family: var(--font-mono); font-size:9px;
+      letter-spacing:0.2em; text-transform:uppercase; color:var(--text-muted);
+    }
+    .cam-label .cam-num { color: var(--text-primary); }
+
+    /* ═══ Control Panel ═══ */
+    #ui {
+      position:fixed; top:108px; right:24px; width:280px;
+      background: var(--bg-warm-white);
+      border: 1px solid var(--border-subtle);
+      padding: 0; z-index:20;
+      max-height: calc(100vh - 132px); overflow-y:auto;
+    }
+    #ui::-webkit-scrollbar { width:4px; }
+    #ui::-webkit-scrollbar-track { background: var(--bg-warm-white); }
+    #ui::-webkit-scrollbar-thumb { background: var(--border-subtle); }
+
+    .sec-bar {
+      display:grid; grid-template-columns: auto 1fr auto;
+      align-items:center; gap:12px;
+      padding: 15px 20px 13px;
+      border-bottom: 1px solid var(--border-subtle);
+      font-family: var(--font-mono); font-size:10px;
+      letter-spacing: 0.18em; text-transform:uppercase; color: var(--text-muted);
+    }
+    .sec-bar .sec-title {
+      text-align:left; color: var(--text-primary);
+      font-family: var(--font-sans); font-weight:700;
+      font-size:11px; letter-spacing: 0.12em;
+    }
+    .sec-bar .sec-num { color: var(--text-light); }
+    .sec-body { padding: 18px 18px 22px; }
+
+    .ctrl { margin-bottom: 18px; }
+    .ctrl:last-child { margin-bottom: 0; }
+    .ctrl-row {
+      display:flex; justify-content:space-between; align-items:baseline;
+      margin-bottom: 8px;
+    }
+    .ctrl-label {
+      font-family: var(--font-italic); font-style:italic; font-weight:400;
+      color: var(--text-secondary); font-size: 17px; letter-spacing: 0.2px;
+    }
+    .ctrl-val {
+      font-family: var(--font-mono); font-weight:500;
+      color: var(--text-primary); font-size: 12px; letter-spacing: 0.05em;
+    }
+
+    input[type=range] {
+      width:100%; appearance:none; -webkit-appearance:none;
+      height:1px; background: var(--border-subtle); outline:none; cursor:pointer;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      appearance:none; -webkit-appearance:none;
+      width:14px; height:14px; border-radius:50%;
+      background: var(--accent-olive); cursor:pointer;
+      border: 2px solid var(--bg-primary);
+      box-shadow: 0 0 0 1px var(--accent-olive);
+      transition: transform .2s var(--ease);
+    }
+    input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+    input[type=range]::-moz-range-thumb {
+      width:14px; height:14px; border-radius:50%;
+      background: var(--accent-olive); cursor:pointer;
+      border: 2px solid var(--bg-primary);
+      box-shadow: 0 0 0 1px var(--accent-olive);
+    }
+    input[type=color] {
+      width:100%; height: 32px; padding: 0;
+      border: 1px solid var(--border-subtle);
+      background: none; cursor:pointer; border-radius: 0;
+    }
+    input[type=color]::-webkit-color-swatch-wrapper { padding: 2px; }
+    input[type=color]::-webkit-color-swatch { border: none; border-radius: 0; }
+
+    /* ═══ Gesture pills ═══ */
+    .gesture-row { display:grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 16px; }
+    .gesture-pill {
+      padding: 10px 9px;
+      font-family: var(--font-mono); font-size:10px;
+      letter-spacing: 0.15em; text-transform:uppercase;
+      color: var(--text-light); background: var(--surface-light);
+      border: 1px solid var(--border-subtle);
+      border-left: 2px solid var(--border-subtle);
+      text-align: left; transition: all .4s var(--ease);
+    }
+    .gesture-pill.active-left  { color: var(--text-primary); border-left-color: var(--accent-olive); background: var(--surface-medium); }
+    .gesture-pill.active-right { color: var(--text-primary); border-left-color: var(--accent-brown); background: var(--surface-medium); }
+    .gesture-pill .ghand {
+      display:block; font-family: var(--font-italic); font-style:italic;
+      font-size: 13px; color: var(--text-muted);
+      letter-spacing: 0; text-transform: none; margin-bottom: 2px;
+    }
+
+    /* ═══ Action buttons ═══ */
+    .act-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .act-btn, .act-btn-wide {
+      background: var(--bg-warm-white); border: 1px solid var(--text-primary);
+      color: var(--text-primary); padding: 11px 8px;
+      font-family: var(--font-sans); font-weight:700;
+      font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase;
+      cursor:pointer; text-align:center; transition: all .3s var(--ease); border-radius: 0;
+    }
+    .act-btn:hover, .act-btn-wide:hover { background: var(--text-primary); color: var(--bg-primary); }
+    .act-btn-wide { width: 100%; margin-top: 6px; }
+    .act-btn-wide.olive { border-color: var(--accent-olive); color: var(--accent-olive); }
+    .act-btn-wide.olive:hover { background: var(--accent-olive); color: var(--bg-warm-white); }
+
+    /* ═══ Drag-rotate hint ═══ */
+    #drag-hint {
+      position:fixed; bottom:32px; left:50%; transform:translateX(-50%);
+      padding: 9px 22px; background: var(--bg-warm-white);
+      border: 1px solid var(--border-subtle);
+      font-family: var(--font-mono); font-size:11px;
+      letter-spacing: 0.18em; text-transform:uppercase; color: var(--text-muted);
+      pointer-events:none; z-index:15; display:none; white-space:nowrap;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       TITLE SCREEN — cinematic, live 3D backdrop
+       ═══════════════════════════════════════════════════════════ */
+    #onboarding, #instructions {
+      position:fixed; inset:0; z-index:100;
+      display:flex; flex-direction:column;
+      color: var(--text-primary);
+    }
+    #onboarding {
+      background:
+        radial-gradient(ellipse at center, rgba(20,10,3,0.65) 0%, rgba(14,7,3,0.85) 55%, rgba(6,3,1,0.98) 100%);
+      transition: background 350ms var(--ease);
+    }
+    #onboarding.is-leaving {
+      background:
+        radial-gradient(ellipse at center, rgba(14,7,3,0.92) 0%, rgba(8,4,1,0.97) 55%, rgba(2,1,0,1) 100%);
+    }
+    #instructions {
+      background:
+        radial-gradient(ellipse at center, rgba(14,7,3,0.92) 0%, rgba(8,4,1,0.97) 55%, rgba(2,1,0,1) 100%);
+      opacity: 0;
+      transition: opacity 750ms var(--ease);
+    }
+    #instructions.is-in { opacity: 1; }
+    #onboarding.is-gone, #instructions.is-gone {
+      opacity: 0; pointer-events: none; visibility: hidden;
+      transition: opacity 700ms var(--ease), visibility 0s linear 700ms;
+    }
+    @keyframes ts-fade-in { from { opacity:0; } to { opacity:1; } }
+
+    /* HUD bars */
+    .hud {
+      display:grid; grid-template-columns: 1fr 1fr 1fr;
+      padding: 22px 38px;
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-muted);
+    }
+    .hud.top { border-bottom: 1px solid var(--border-subtle); }
+    .hud.bottom { border-top: 1px solid var(--border-subtle); margin-top: auto; }
+    .hud .center { text-align:center; color: var(--text-secondary); }
+    .hud .right { text-align:right; }
+    .hud .accent { color: var(--accent-olive); }
+
+    /* HUD corner brackets */
+    .hud-corner {
+      position:fixed; width: 28px; height: 28px;
+      border: 1px solid var(--text-muted);
+      pointer-events:none; opacity:0.55; z-index:101;
+    }
+    .hud-corner.tl { top: 16px; left: 16px;  border-right:none; border-bottom:none; }
+    .hud-corner.tr { top: 16px; right: 16px; border-left:none;  border-bottom:none; }
+    .hud-corner.bl { bottom: 16px; left: 16px; border-right:none; border-top:none; }
+    .hud-corner.br { bottom: 16px; right: 16px; border-left:none; border-top:none; }
+
+    /* Title stage */
+    .ts-stage {
+      flex: 1; display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      padding: 32px 32px 40px; gap: 8px;
+    }
+    .ts-eyebrow {
+      font-family: var(--font-mono); font-size: 12px;
+      letter-spacing: 0.32em; text-transform: uppercase; color: var(--accent-olive);
+      margin-bottom: 22px;
+      animation: ts-rise 900ms var(--ease) 200ms both;
+    }
+    @keyframes ts-rise {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .ts-wordmark {
+      display:flex; align-items:baseline; gap: 14px;
+      line-height: 0.88;
+      animation: ts-rise 1200ms var(--ease) 350ms both;
+    }
+    .ts-wordmark .wm-italic {
+      font-family: var(--font-italic); font-style:italic; font-weight:300;
+      color: var(--accent-olive);
+      font-size: clamp(96px, 14vw, 200px); letter-spacing: -2px;
+    }
+    .ts-wordmark .wm-bold {
+      font-family: var(--font-sans); font-weight:900;
+      color: var(--text-primary); text-transform: uppercase;
+      font-size: clamp(76px, 11vw, 160px); letter-spacing: -3px;
+    }
+    .ts-tagline {
+      font-family: var(--font-italic); font-style:italic; font-weight:400;
+      font-size: clamp(18px, 2vw, 24px); color: var(--text-secondary);
+      letter-spacing: 0.3px; margin-top: 18px;
+      animation: ts-rise 1100ms var(--ease) 550ms both;
+    }
+    .ts-rule {
+      width: 80px; height: 1px; background: var(--text-muted);
+      margin: 32px 0 28px; transform-origin: center; opacity: 0.6;
+      animation: ts-rule-grow 1100ms var(--ease) 700ms both;
+    }
+    @keyframes ts-rule-grow {
+      from { transform: scaleX(0); opacity: 0; }
+      to   { transform: scaleX(1); opacity: 0.6; }
+    }
+    .ts-cta {
+      position:relative; background: transparent; border: none; padding: 14px 0;
+      cursor: pointer; font-family: var(--font-sans); font-weight:700;
+      font-size: 14px; letter-spacing: 0.32em; text-transform: uppercase;
+      color: var(--text-primary); display:flex; align-items:center; gap: 18px;
+      transition: gap .3s var(--ease), color .3s var(--ease);
+      animation: ts-rise 1100ms var(--ease) 850ms both, ts-pulse 2.4s ease-in-out 1800ms infinite;
+    }
+    .ts-cta .bracket {
+      font-family: var(--font-mono); font-weight:400; font-size: 24px;
+      color: var(--accent-olive); transition: transform .3s var(--ease), color .3s var(--ease);
+    }
+    .ts-cta:hover { color: var(--accent-olive-dark); gap: 26px; }
+    .ts-cta:hover .bracket { color: var(--accent-olive-dark); }
+    .ts-cta:hover .bracket.l { transform: translateX(-6px); }
+    .ts-cta:hover .bracket.r { transform: translateX(6px); }
+    @keyframes ts-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+    .ts-hint {
+      margin-top: 22px; font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-light);
+      animation: ts-rise 1100ms var(--ease) 1100ms both;
+    }
+    .ts-hint .key {
+      display:inline-block; padding: 2px 8px;
+      border: 1px solid var(--text-light); margin: 0 4px; color: var(--text-muted);
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       INSTRUCTIONS — game-style move list
+       ═══════════════════════════════════════════════════════════ */
+    .is-stage {
+      flex: 1; display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      padding: 24px 32px; overflow-y: auto;
+    }
+    .is-eyebrow {
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.32em; text-transform: uppercase;
+      color: var(--accent-olive); margin-bottom: 12px;
+    }
+    .is-title {
+      display:flex; align-items:baseline; gap: 14px;
+      line-height: 0.95; margin-bottom: 24px; margin-top: 28px;
+    }
+    .is-title em {
+      font-family: var(--font-italic); font-style:italic; font-weight:400;
+      color: var(--text-secondary); font-size: clamp(42px, 6vw, 68px); letter-spacing: 0.5px;
+    }
+    .is-title strong {
+      font-family: var(--font-sans); font-weight:900;
+      color: var(--text-primary); text-transform: uppercase;
+      font-size: clamp(38px, 5.5vw, 62px); letter-spacing: -1.5px;
+    }
+    .is-sub {
+      font-family: var(--font-italic); font-style:italic;
+      font-size: 17px; color: var(--text-muted);
+      letter-spacing: 0.3px; margin-bottom: 28px;
+    }
+    .is-cols {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 0 56px; width: 100%; max-width: 1100px;
+      margin-bottom: 28px; align-items: start;
+    }
+    .is-col-header {
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 0.28em; text-transform: uppercase;
+      color: var(--accent-olive); padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: 4px;
+    }
+    .is-moves {
+      display: flex; flex-direction: column;
+      width: 100%;
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 4px 0;
+    }
+    .is-move {
+      display: grid; grid-template-columns: 36px 140px 1fr;
+      column-gap: 16px; align-items: center; padding: 12px 8px;
+      border: 1px solid transparent;
+      border-bottom-color: var(--border-light);
+      transition: border-color .3s var(--ease), color .3s var(--ease);
+    }
+    .is-move:last-child { border-bottom-color: transparent; }
+    .is-move:hover { border-color: var(--accent-olive); color: var(--text-primary); }
+    .is-move .m-num {
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--text-light); letter-spacing: 0.15em; text-align: left;
+    }
+    .is-move .m-gesture {
+      font-family: var(--font-italic); font-style:italic; font-weight:400;
+      font-size: 21px; color: var(--accent-olive); letter-spacing: 0.3px;
+    }
+    .is-move .m-action {
+      font-family: var(--font-sans); font-weight:400;
+      font-size: 13px; color: var(--text-secondary); letter-spacing: 0.04em; line-height: 1.5;
+      display: grid; grid-template-columns: 82px 1fr;
+      column-gap: 12px; align-items: baseline;
+    }
+    .is-move .m-action b {
+      font-weight: 700; color: var(--text-primary);
+      text-transform: uppercase; font-size: 11px; letter-spacing: 0.14em;
+    }
+    .is-controls {
+      display: flex; flex-direction: column;
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 4px 0;
+    }
+    .is-ctrl {
+      display: grid; grid-template-columns: 16px 130px 88px 1fr;
+      column-gap: 14px; align-items: center; padding: 12px 8px;
+      border-bottom: 1px solid var(--border-light);
+      transition: color .3s var(--ease);
+    }
+    .is-ctrl:last-child { border-bottom: none; }
+    .is-ctrl:hover { color: var(--text-primary); }
+    .is-ctrl .ctrl-dot {
+      font-family: var(--font-mono); color: var(--border-subtle); font-size: 14px;
+    }
+    .is-ctrl .ctrl-name {
+      font-family: var(--font-italic); font-style:italic; font-weight:400;
+      font-size: 21px; color: var(--accent-olive); letter-spacing: 0.3px;
+    }
+    .is-ctrl .ctrl-key {
+      font-family: var(--font-sans); font-weight:700;
+      text-transform: uppercase; font-size: 11px; letter-spacing: 0.14em;
+      color: var(--text-primary);
+    }
+    .is-ctrl .ctrl-desc {
+      font-family: var(--font-sans); font-size: 13px;
+      color: var(--text-secondary); letter-spacing: 0.03em; line-height: 1.5;
+    }
+    .is-cta-row {
+      display:flex; gap: 18px; align-items:center;
+      margin-top: 8px; flex-wrap: wrap; justify-content: center;
+    }
+    .is-cta {
+      background: transparent; border: none; padding: 14px 0; cursor: pointer;
+      font-family: var(--font-sans); font-weight:700;
+      font-size: 13px; letter-spacing: 0.28em; text-transform: uppercase;
+      color: var(--text-primary); display:flex; align-items:center; gap: 14px;
+      transition: gap .3s var(--ease), color .3s var(--ease);
+    }
+    .is-cta .bracket {
+      font-family: var(--font-mono); font-weight:400; font-size: 22px;
+      transition: transform .3s var(--ease);
+    }
+    .is-cta.primary { color: var(--text-primary); animation: ts-pulse 2.4s ease-in-out 1000ms infinite; }
+    .is-cta.primary .bracket { color: var(--accent-olive); }
+    .is-cta.primary:hover { color: var(--accent-olive-dark); gap: 22px; }
+    .is-cta.primary:hover .bracket { color: var(--accent-olive-dark); }
+    .is-cta.primary:hover .bracket.l { transform: translateX(-5px); }
+    .is-cta.primary:hover .bracket.r { transform: translateX(5px); }
+    .is-cta-sub {
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--text-light); letter-spacing: 0.2em; text-transform: uppercase;
+    }
+
+    /* ═══ Calibration ═══ */
+    #cal-overlay {
+      position:fixed; inset:0; z-index:90;
+      background: rgba(242,237,230,.94); backdrop-filter: blur(8px);
+      display:none; flex-direction:column; align-items:center; justify-content:center;
+    }
+    #cal-card {
+      background: var(--bg-warm-white); border: 1px solid var(--border-subtle);
+      padding: 0; width: 420px; max-width: 92%;
+    }
+    .cal-header {
+      display:grid; grid-template-columns: 1fr 1fr 1fr;
+      padding: 14px 22px; border-bottom: 1px solid var(--border-subtle);
+      font-family: var(--font-mono); font-size: 9px;
+      letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-muted);
+    }
+    .cal-header .center { text-align:center; color: var(--text-primary); font-weight:500; }
+    .cal-header .right { text-align:right; }
+    .cal-body { padding: 48px 36px 32px; text-align:center; }
+    #cal-icon {
+      font-family: var(--font-mono); font-size: 14px;
+      letter-spacing: 0.15em; color: var(--text-light); margin-bottom: 24px;
+    }
+    #cal-gesture-name {
+      font-family: var(--font-italic); font-style:italic; font-weight:400;
+      font-size: 42px; line-height: 1.05; color: var(--text-primary);
+      margin-bottom: 12px; letter-spacing: 0.3px;
+    }
+    #cal-instruction {
+      font-family: var(--font-sans); font-weight:300;
+      font-size: 13px; line-height: 1.6; color: var(--text-muted); margin-bottom: 32px;
+    }
+    #cal-progress-bar { height: 2px; background: var(--border-subtle); margin-bottom: 14px; position: relative; }
+    #cal-fill {
+      position: absolute; top:0; left:0; bottom:0; width: 0%;
+      background: var(--accent-olive); transition: width .1s linear;
+    }
+    #cal-step-count {
+      font-family: var(--font-mono); font-size: 9px;
+      letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--text-light); margin-bottom: 28px;
+    }
+    #cal-skip {
+      background: transparent; border: 1px solid var(--text-primary);
+      color: var(--text-primary); padding: 10px 28px;
+      font-family: var(--font-sans); font-weight:700;
+      font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase;
+      cursor:pointer; border-radius: 0; transition: all .3s var(--ease);
+    }
+    #cal-skip:hover { background: var(--text-primary); color: var(--bg-primary); }
+
+    /* ═══ Demo video overlay ═══ */
+    #demo-overlay {
+      position:fixed; inset:0; z-index:200;
+      display:none; align-items:center; justify-content:center;
+      background: rgba(8,4,1,0.92); backdrop-filter: blur(12px);
+    }
+    #demo-overlay.open { display:flex; }
+    #demo-box {
+      position:relative; max-width:1200px; width:96%;
+    }
+    #demo-video {
+      width:100%; border: 1px solid var(--border-subtle); display:block;
+    }
+    #demo-controls {
+      display:flex; gap:16px; align-items:center;
+      margin-top: 12px;
+    }
+    #demo-play-btn {
+      background:transparent; border:1px solid var(--border-subtle);
+      color:var(--text-muted); padding:6px 14px; flex-shrink:0;
+      font-family:var(--font-mono); font-size:10px; letter-spacing:0.2em;
+      text-transform:uppercase; cursor:pointer;
+      transition: all .2s var(--ease);
+    }
+    #demo-play-btn:hover { border-color:var(--accent-olive); color:var(--accent-olive); }
+    #demo-skip-back, #demo-skip {
+      background:transparent; border:1px solid var(--border-subtle);
+      color:var(--text-muted); padding:6px 10px; flex-shrink:0;
+      font-family:var(--font-mono); font-size:10px; letter-spacing:0.15em;
+      text-transform:uppercase; cursor:pointer;
+      transition: all .2s var(--ease);
+    }
+    #demo-skip-back:hover, #demo-skip:hover { border-color:var(--accent-olive); color:var(--accent-olive); }
+    #demo-range {
+      flex:1; height:2px; cursor:pointer;
+      -webkit-appearance:none; appearance:none;
+      background: var(--border-subtle); outline:none; border:none;
+    }
+    #demo-range::-webkit-slider-thumb {
+      -webkit-appearance:none; appearance:none;
+      width:12px; height:12px; border-radius:50%;
+      background: var(--accent-olive); cursor:grab;
+      margin-top: -5px;
+      transition: transform .15s var(--ease);
+    }
+    #demo-range::-webkit-slider-thumb:active { cursor:grabbing; transform:scale(1.4); }
+    #demo-range::-moz-range-thumb {
+      width:12px; height:12px; border-radius:50%; border:none;
+      background: var(--accent-olive); cursor:grab;
+    }
+    #demo-range::-webkit-slider-runnable-track { background: var(--border-subtle); height:1px; }
+    #demo-range::-moz-range-track { background: var(--border-subtle); height:1px; }
+    #demo-time {
+      font-family:var(--font-mono); font-size:10px; letter-spacing:0.15em;
+      color:var(--text-muted); flex-shrink:0; min-width:72px; text-align:right;
+    }
+    #demo-close {
+      background:transparent; border:1px solid var(--border-subtle);
+      color:var(--text-muted); padding:6px 16px; flex-shrink:0;
+      font-family:var(--font-mono); font-size:10px; letter-spacing:0.2em;
+      text-transform:uppercase; cursor:pointer;
+      transition: all .2s var(--ease);
+    }
+    #demo-close:hover { border-color:var(--text-primary); color:var(--text-primary); }
+
+    /* Demo button on title screen */
+    .ts-demo-btn {
+      background:transparent; border:1px solid var(--border-subtle);
+      color:var(--text-muted); padding:4px 14px;
+      font-family:var(--font-mono); font-size:10px; letter-spacing:0.2em;
+      text-transform:uppercase; cursor:pointer;
+      transition: all .25s var(--ease);
+      vertical-align: middle;
+    }
+    .ts-demo-btn:hover { border-color:var(--accent-olive); color:var(--accent-olive); }
+    .is-demo-prominent {
+      position: absolute; top: 72px; right: 38px; z-index: 10;
+      border-color: var(--accent-olive); color: var(--accent-olive);
+      padding: 12px 28px; font-size: 12px; letter-spacing: 0.24em;
+    }
+    .is-demo-prominent:hover {
+      background: rgba(200,214,138,0.08);
+      border-color: var(--text-primary); color: var(--text-primary);
+    }
+
+    /* ═══ Responsive ═══ */
+    @media (max-width: 720px) {
+      .hud { padding: 18px 24px; font-size: 9px; }
+      .ts-wordmark { gap: 8px; }
+      .is-move { grid-template-columns: 140px 1fr; column-gap: 16px; padding: 12px 10px; }
+      .is-move .m-num { display: none; }
+      .is-move .m-action { font-size: 12px; grid-template-columns: 72px 1fr; column-gap: 12px; }
+      .is-move .m-gesture { font-size: 18px; }
+      #ui { width: calc(100% - 32px); right: 16px; top: 96px; }
+    }
+    @media (max-width: 480px) {
+      .hud-corner { width: 18px; height: 18px; }
+      .ts-eyebrow, .is-eyebrow { font-size: 9px; }
+      .ts-tagline { font-size: 14px; }
+      .ts-cta { font-size: 11px; letter-spacing: 0.25em; }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="three-canvas"></canvas>
+
+<!-- Editorial top bar -->
+<div id="top-bar">
+  <div class="brand">
+    <span class="brand-italic">pottery</span>
+    <span class="brand-bold">STUDIO</span>
+  </div>
+  <div class="top-title">an exploration of form &amp; structure</div>
+  <div class="top-meta">
+    <span>POTTERY STUDIO · 2026</span>
+    <span class="num">DESIGN BY JENNY JUNG</span>
+  </div>
+</div>
+
+<div class="cam-wrap">
+  <video id="webcam" autoplay playsinline muted></video>
+  <canvas id="hand-overlay" width="220" height="165"></canvas>
+  <div class="cam-label">
+    <span>dual hand tracking</span>
+    <span class="cam-num"></span>
+  </div>
+</div>
+
+<div id="status"><div id="status-dot"></div><span id="status-text">starting</span></div>
+<div id="drag-hint">↔ drag to inspect</div>
+
+<div id="ui">
+  <!-- Section: Form -->
+  <div class="sec-bar">
+    <span>tools</span>
+    <span class="sec-title">Form</span>
+    <span class="sec-num">01</span>
+  </div>
+  <div class="sec-body">
+    <div class="ctrl">
+      <div class="ctrl-row">
+        <span class="ctrl-label">sensitivity</span>
+        <span class="ctrl-val" id="v-sensitivity">0.65</span>
+      </div>
+      <input type="range" id="s-sensitivity" min="0.05" max="1.0" step="0.05" value="0.65">
+    </div>
+    <div class="ctrl">
+      <div class="ctrl-row">
+        <span class="ctrl-label">brush radius</span>
+        <span class="ctrl-val" id="v-brush">0.50</span>
+      </div>
+      <input type="range" id="s-brush" min="0.08" max="1.6" step="0.04" value="0.5">
+    </div>
+    <div class="ctrl">
+      <div class="ctrl-row">
+        <span class="ctrl-label">carving depth</span>
+        <span class="ctrl-val" id="v-depth">1.00</span>
+      </div>
+      <input type="range" id="s-depth" min="0.05" max="2.0" step="0.05" value="1.0">
+    </div>
+    <div class="ctrl">
+      <div class="ctrl-row">
+        <span class="ctrl-label">clay</span>
+        <span class="ctrl-val">color</span>
+      </div>
+      <input type="color" id="clay-color" value="#b0622e">
+    </div>
+  </div>
+
+  <!-- Section: Gesture -->
+  <div class="sec-bar">
+    <span>signal</span>
+    <span class="sec-title">Gesture</span>
+    <span class="sec-num">02</span>
+  </div>
+  <div class="sec-body">
+    <div class="gesture-row">
+      <div class="gesture-pill" id="gest-left"><span class="ghand">left</span>—</div>
+      <div class="gesture-pill" id="gest-right"><span class="ghand">right</span>—</div>
+    </div>
+    <button class="act-btn-wide olive" id="btn-calibrate">Calibrate Gestures</button>
+  </div>
+
+  <!-- Section: Studio -->
+  <div class="sec-bar">
+    <span>session</span>
+    <span class="sec-title">Studio</span>
+    <span class="sec-num">03</span>
+  </div>
+  <div class="sec-body">
+    <div class="act-grid">
+      <button class="act-btn" id="btn-reset">↺ Reset</button>
+      <button class="act-btn" id="btn-pause">⏸ Pause</button>
+      <button class="act-btn" id="btn-save">↓ Save</button>
+      <button class="act-btn" id="btn-wire">⌗ Wire</button>
+    </div>
+  </div>
+</div>
+
+<!-- Calibration overlay -->
+<div id="cal-overlay">
+  <div id="cal-card">
+    <div class="cal-header">
+      <span>process</span>
+      <span class="center">Calibration</span>
+      <span class="right">04</span>
+    </div>
+    <div class="cal-body">
+      <div id="cal-icon">— I —</div>
+      <div id="cal-gesture-name">point finger</div>
+      <div id="cal-instruction">Hold the gesture steady. The system is learning the natural shape of your hand.</div>
+      <div id="cal-progress-bar"><div id="cal-fill"></div></div>
+      <div id="cal-step-count">step 01 / 04</div>
+      <button id="cal-skip">Skip Calibration</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     TITLE SCREEN — cinematic, live 3D clay rotating behind
+     ═══════════════════════════════════════════════════════════════ -->
+<div id="onboarding">
+  <div class="hud-corner tl"></div>
+  <div class="hud-corner tr"></div>
+  <div class="hud-corner bl"></div>
+  <div class="hud-corner br"></div>
+
+  <div class="hud top">
+    <div>POTTERY STUDIO · 2026</div>
+    <div class="center"></div>
+    <div class="right">DESIGN BY JENNY JUNG</div>
+  </div>
+
+  <div class="ts-stage">
+    <div class="ts-eyebrow">— the vessel —</div>
+    <div class="ts-wordmark">
+      <span class="wm-italic">pottery</span>
+      <span class="wm-bold" style="font-weight:500">STUDIO</span>
+    </div>
+    <div class="ts-tagline" style="padding:8px 0 0">an exploration of shape &amp; form</div>
+    <div class="ts-rule"></div>
+    <button id="start-btn" class="ts-cta">
+      <span class="bracket l">[</span>
+      <span class="label">begin</span>
+      <span class="bracket r">]</span>
+    </button>
+    <div class="ts-hint">PRESS ENTER OR CLICK TO BEGIN</div>
+  </div>
+
+  <div class="hud bottom">
+    <div>A HAND-TRACKING STUDIO</div>
+    <div class="center"></div>
+    <div class="right">webcam required</div>
+  </div>
+</div>
+
+<!-- Demo video overlay -->
+<div id="demo-overlay">
+  <div id="demo-box">
+    <video id="demo-video" src="demo.mp4"></video>
+    <div id="demo-controls">
+      <button id="demo-play-btn">▶ play</button>
+      <button id="demo-skip-back">-10s</button>
+      <button id="demo-skip">+10s</button>
+      <input type="range" id="demo-range" min="0" max="1000" value="0" step="1">
+      <span id="demo-time">0:00 / 0:00</span>
+      <button id="demo-close">✕ close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     INSTRUCTIONS — game-style move list
+     ═══════════════════════════════════════════════════════════════ -->
+<div id="instructions" style="display:none;">
+  <div class="hud-corner tl"></div>
+  <div class="hud-corner tr"></div>
+  <div class="hud-corner bl"></div>
+  <div class="hud-corner br"></div>
+
+  <div class="hud top">
+    <div>POTTERY STUDIO · 2026</div>
+    <div class="center"></div>
+    <div class="right">DESIGN BY JENNY JUNG</div>
+  </div>
+
+  <button class="ts-demo-btn is-demo-prominent" id="btn-demo">▶ watch demo</button>
+
+  <div class="is-stage">
+    <div class="is-title">
+      <em>how to</em>
+      <strong>SCULPT</strong>
+    </div>
+
+    <div class="is-cols">
+      <div class="is-col">
+        <div class="is-col-header">— hand gestures —</div>
+        <div class="is-moves">
+          <div class="is-move">
+            <div class="m-num">01</div>
+            <div class="m-gesture">point</div>
+            <div class="m-action"><b>carve</b><span>press the index finger into the surface</span></div>
+          </div>
+          <div class="is-move">
+            <div class="m-num">02</div>
+            <div class="m-gesture">pinch</div>
+            <div class="m-action"><b>pull</b><span>thumb &amp; index together — draw the wall outward</span></div>
+          </div>
+          <div class="is-move">
+            <div class="m-num">03</div>
+            <div class="m-gesture">open palm</div>
+            <div class="m-action"><b>smooth</b><span>spread the palm — move upward to lift</span></div>
+          </div>
+          <div class="is-move">
+            <div class="m-num">04</div>
+            <div class="m-gesture">fist</div>
+            <div class="m-action"><b>compress</b><span>close the hand to push the clay inward</span></div>
+          </div>
+          <div class="is-move">
+            <div class="m-num">05</div>
+            <div class="m-gesture">two palms</div>
+            <div class="m-action"><b>collar</b><span>both open palms shape the walls together</span></div>
+          </div>
+          <div class="is-move">
+            <div class="m-num">06</div>
+            <div class="m-gesture">paused wheel</div>
+            <div class="m-action"><b>free-form</b><span>stop the wheel — drag a finger to sculpt</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="is-col">
+        <div class="is-col-header">— studio controls —</div>
+        <div class="is-controls">
+          <div class="is-ctrl">
+            <span class="ctrl-dot">·</span>
+            <em class="ctrl-name">sensitivity</em>
+            <strong class="ctrl-key">strength</strong>
+            <span class="ctrl-desc">how strongly gestures deform clay</span>
+          </div>
+          <div class="is-ctrl">
+            <span class="ctrl-dot">·</span>
+            <em class="ctrl-name">depth</em>
+            <strong class="ctrl-key">pressure</strong>
+            <span class="ctrl-desc">higher means deeper marks</span>
+          </div>
+          <div class="is-ctrl">
+            <span class="ctrl-dot">·</span>
+            <em class="ctrl-name">brush</em>
+            <strong class="ctrl-key">radius</strong>
+            <span class="ctrl-desc">size of the area each gesture affects</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="is-cta-row">
+      <button id="instr-start-btn" class="is-cta primary">
+        <span class="bracket l">[</span>
+        <span class="label">begin sculpting</span>
+        <span class="bracket r">]</span>
+      </button>
+    </div>
+    <div class="is-cta-sub" style="margin-top:14px;">the wheel is already turning</div>
+  </div>
+
+  <div class="hud bottom">
+    <div><span class="accent">●</span>&nbsp;&nbsp;one or both hands</div>
+    <div class="center">— the move list —</div>
+    <div class="right"></div>
+  </div>
+</div>
+
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+// ═══════════════════════════════════════════════════════════════════
+// GLOBAL CONFIG
+// ═══════════════════════════════════════════════════════════════════
+let rotSpeed            = 1.0;
+let brushRadius         = 0.50;
+let carvingDepth        = 1.00;
+let isSpinning          = true;
+let showWire            = false;
+let showingInstructions = false;
+
+// ── Deformation sensitivity system ──────────────────────────────
+// All sculpting strength flows through this object so adjusting
+// globalStrength (or the UI slider) dials every effect at once.
+// Per-gesture multipliers keep compression/lift calmer than carving.
+const deformationSettings = {
+  globalStrength:    0.65,   // UI slider sets this — 0.05 (whisper) → 1.0 (full)
+  maxDeltaPerFrame:  0.006,  // hard vertex-movement cap regardless of strength
+  pressureSmoothing: 0.18,   // lerp factor for per-hand pressure ramp-in
+  minPressure:       0.08,
+  maxPressure:       0.65,
+  carveStrength:     0.35,
+  pullStrength:      0.25,
+  smoothStrength:    0.18,
+  liftStrength:      0.20,
+  compressStrength:  0.22,
+};
+
+// Deformation rate limiter — updates fire at ~30 fps, not per render frame.
+// Rendering stays at full fps; only mesh changes are throttled.
+let   lastDeformTime    = 0;
+const DEFORM_INTERVAL   = 33;   // ms  ≈ 30 deformation updates / second
+
+// ── Drag-to-inspect rotation (paused mode only) ─────────────────
+// autoRotationAngle accumulates while the wheel is spinning.
+// manualRotationY is set by pointer drag when paused.
+// clay.rotation.y = autoRotationAngle + manualRotationY always.
+let autoRotationAngle  = 0;
+let manualRotationY    = 0;
+let isDraggingToRotate = false;
+let dragLastX          = 0;
+
+const ALPHA = 0.30; // NDC smoothing factor
+
+// ── Per-hand state ───────────────────────────────────────────────
+const HS = {
+  left: {
+    visible: false, landmarks: null, gesture: 'none',
+    tipNDC: null, smoothX: 0.5, smoothY: 0.5,
+    color: 0x44ccff, hexStr: '#44ccff',
+    smoothHit: null,          // smoothed world-space contact point (jitter reduction)
+    prevHitWorld: null,       // previous frame's contact point (stroke interpolation)
+    debugScores: null,        // latest classification result for overlay display
+    smoothedLandmarks: null,  // EMA-smoothed landmark array (used for classification)
+    prevSmoothedLm: null,     // previous smoothed frame (EMA input)
+    pinchState: 'open',       // PINCH_STATE — open | closing | pinched | releasing
+    isPinching: false,        // true while state machine is in PINCHED
+    pinchDistance: 1.0,       // latest normalised thumb-index distance
+    smoothedPressure: null,   // lerped carvingDepth — ramps up on first contact
+  },
+  right: {
+    visible: false, landmarks: null, gesture: 'none',
+    tipNDC: null, smoothX: 0.5, smoothY: 0.5,
+    color: 0xff8833, hexStr: '#ff8833',
+    smoothHit: null,
+    prevHitWorld: null,
+    debugScores: null,
+    smoothedLandmarks: null,
+    prevSmoothedLm: null,
+    pinchState: 'open',
+    isPinching: false,
+    pinchDistance: 1.0,
+    smoothedPressure: null,
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// THREE.JS
+// ═══════════════════════════════════════════════════════════════════
+const canvas   = document.getElementById('three-canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, preserveDrawingBuffer:true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type    = THREE.PCFSoftShadowMap;
+renderer.toneMapping       = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.25;
+
+const scene  = new THREE.Scene();
+// Moody warm-dark scene — dramatic key light, deep shadows, amber rim
+scene.background = new THREE.Color(0x1a0d05);
+scene.fog = new THREE.FogExp2(0x0e0703, 0.072);
+
+const camera = new THREE.PerspectiveCamera(42, innerWidth/innerHeight, 0.1, 120);
+camera.position.set(0, 1.8, 9);
+camera.lookAt(0, 0.4, 0);
+
+// Lights — moody single warm key from upper right, low ambient, amber rim glow
+scene.add(new THREE.AmbientLight(0x3a1e10, 0.45));
+const sun = new THREE.DirectionalLight(0xffb070, 3.6);
+sun.position.set(4.5, 7, 4); sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, {top:8, bottom:-8, left:-8, right:8, near:.5, far:50});
+sun.shadow.bias = -0.0003; sun.shadow.radius = 6;
+scene.add(sun);
+// Dim warm fill so the shadowed side doesn't go completely black
+const fill = new THREE.DirectionalLight(0x5a2810, 0.45); fill.position.set(-6, 3, -3); scene.add(fill);
+// Amber rim glow from behind-left
+const rim  = new THREE.PointLight(0xff7530, 2.4, 18); rim.position.set(-3, 4.5, -3.5); scene.add(rim);
+// Subtle warm under-bounce
+const bounce = new THREE.PointLight(0x6e2810, 0.6, 10); bounce.position.set(0, -1.2, 2); scene.add(bounce);
+
+// Pottery wheel — very dark stone
+const wheelMat = new THREE.MeshStandardMaterial({ color:0x1c0e06, roughness:.95, metalness:.05 });
+const wheelDisk = new THREE.Mesh(new THREE.CylinderGeometry(2.1,2.3,0.14,72), wheelMat);
+wheelDisk.position.y = -1.65; wheelDisk.receiveShadow = true; scene.add(wheelDisk);
+const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(0.28,0.38,1.3,32),
+  new THREE.MeshStandardMaterial({ color:0x2a1408, roughness:.92, metalness:.05 }));
+pedestal.position.y = -2.38; pedestal.castShadow = pedestal.receiveShadow = true; scene.add(pedestal);
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(30,30),
+  new THREE.MeshStandardMaterial({ color:0x140803, roughness:1 })
+);
+ground.rotation.x = -Math.PI/2; ground.position.y = -3.05; ground.receiveShadow = true; scene.add(ground);
+
+// ── Clay ────────────────────────────────────────────────────────
+const CLAY_W=1.6, CLAY_H=3.0, CLAY_D=1.6, SEG_W=24, SEG_H=36, SEG_D=24;
+const clayGeo = new THREE.BoxGeometry(CLAY_W,CLAY_H,CLAY_D,SEG_W,SEG_H,SEG_D);
+const origPositions = new Float32Array(clayGeo.attributes.position.array);
+const clayMat = new THREE.MeshStandardMaterial({ color:new THREE.Color(0xb0622e), roughness:.93, metalness:0 });
+const clay = new THREE.Mesh(clayGeo, clayMat);
+clay.castShadow = clay.receiveShadow = true; scene.add(clay);
+
+// ── Per-hand cursors & rings ─────────────────────────────────────
+function makeMesh(geo, mat) { const m=new THREE.Mesh(geo,mat); m.visible=false; scene.add(m); return m; }
+
+// Cursors — olive (left) + warm brown (right), in keeping with Core Harmony palette
+const cursors = {
+  left:  makeMesh(new THREE.SphereGeometry(.06,16,16), new THREE.MeshBasicMaterial({color:0x5C6B3A,transparent:true,opacity:.92})),
+  right: makeMesh(new THREE.SphereGeometry(.06,16,16), new THREE.MeshBasicMaterial({color:0x6B4A2A,transparent:true,opacity:.92})),
+};
+const rings = {
+  left:  makeMesh(new THREE.TorusGeometry(1,.018,8,52), new THREE.MeshBasicMaterial({color:0x5C6B3A,transparent:true,opacity:.55})),
+  right: makeMesh(new THREE.TorusGeometry(1,.018,8,52), new THREE.MeshBasicMaterial({color:0x6B4A2A,transparent:true,opacity:.55})),
+};
+
+// Fist compression ring — olive accent
+const compressionRingMat = new THREE.MeshBasicMaterial({ color:0x5C6B3A, transparent:true, opacity:0 });
+const compressionRing = makeMesh(new THREE.TorusGeometry(1, 0.045, 8, 64), compressionRingMat);
+compressionRing.rotation.x = Math.PI / 2;   // lay flat / horizontal
+let compressionRingPhase = 0;
+let clayTopY = CLAY_H / 2;   // tracks live top of clay for ring placement
+
+// Raycaster
+const raycaster = new THREE.Raycaster();
+const ndcVec    = new THREE.Vector2();
+
+// ═══════════════════════════════════════════════════════════════════
+// GESTURE DETECTION — normalised · angle-based · multi-feature
+// ═══════════════════════════════════════════════════════════════════
+// Every distance is normalised by palm width so recognition is stable
+// whether the hand is 30 cm or 80 cm from the camera.
+// Raw landmarks are EMA-smoothed before classification.
+// Per-gesture scores (0–1) are built from joint angles, curl values,
+// finger spread, palm openness/compactness, and thumb fold.
+// A gesture only commits when it clears a confidence threshold AND
+// beats the runner-up by a minimum margin; otherwise 'none' is returned
+// so ambiguous poses never accidentally fire compression or lift.
+// Per-hand temporal stabilizers + a time-based lock prevent flicker.
+
+// ── Distance helpers (also used outside gesture detection) ───────
+function d2(a, b) { return Math.hypot(a.x-b.x, a.y-b.y); }
+function d3(a, b) { return Math.hypot(a.x-b.x, a.y-b.y, (a.z||0)-(b.z||0)); }
+
+// Scale reference: index MCP (5) ↔ pinky MCP (17)
+function getPalmWidth(lm) { return d3(lm[5], lm[17]); }
+
+// Normalised thumb-index distance — same physical pinch gap fires at
+// any hand distance from the camera.
+function getNormalizedPinchDistance(lm) {
+  return d3(lm[4], lm[8]) / Math.max(getPalmWidth(lm), 0.0001);
+}
+
+// ── Vector helpers for facing check ─────────────────────────────
+function normalizeVec(v) {
+  const len = Math.hypot(v.x, v.y, v.z || 0);
+  if (len < 0.0001) return { x:0, y:0, z:0 };
+  return { x: v.x/len, y: v.y/len, z: (v.z||0)/len };
+}
+function dot(a, b) { return a.x*b.x + a.y*b.y + (a.z||0)*(b.z||0); }
+
+// Are thumb tip and index tip pointing toward each other?
+// Pinch has thumb (4→3) and index (8→7) converging → dot ≈ −1 → returns ≈ 1.
+// A 2-D near-miss (e.g. folded fingers just overlapping in camera view)
+// scores low because the direction vectors don't oppose each other.
+function getThumbIndexFacingScore(lm) {
+  const thumbDir = normalizeVec({
+    x: lm[4].x-lm[3].x, y: lm[4].y-lm[3].y, z: (lm[4].z||0)-(lm[3].z||0),
+  });
+  const indexDir = normalizeVec({
+    x: lm[8].x-lm[7].x, y: lm[8].y-lm[7].y, z: (lm[8].z||0)-(lm[7].z||0),
+  });
+  const facing = -dot(thumbDir, indexDir);   // −1 when opposing → good pinch
+  return THREE.MathUtils.clamp((facing + 0.2) / 1.2, 0, 1);
+}
+
+// ── EMA landmark smoothing ───────────────────────────────────────
+// alpha = 0.35 → ~40 ms lag at 60 fps.  Eliminates single-frame spikes
+// that would otherwise flip the gesture mid-stroke.
+function smoothLandmarks(prev, curr, alpha = 0.35) {
+  if (!prev) return curr.map(p => ({ x: p.x, y: p.y, z: p.z || 0 }));
+  return curr.map((p, i) => ({
+    x: prev[i].x + (p.x - prev[i].x) * alpha,
+    y: prev[i].y + (p.y - prev[i].y) * alpha,
+    z: (prev[i].z||0) + ((p.z||0) - (prev[i].z||0)) * alpha,
+  }));
+}
+
+// ── Joint angle (degrees) at vertex b ────────────────────────────
+function angleBetween(a, b, c) {
+  const ab = { x: a.x-b.x, y: a.y-b.y, z: (a.z||0)-(b.z||0) };
+  const cb = { x: c.x-b.x, y: c.y-b.y, z: (c.z||0)-(b.z||0) };
+  const dot  = ab.x*cb.x + ab.y*cb.y + ab.z*cb.z;
+  const magA = Math.hypot(ab.x, ab.y, ab.z);
+  const magC = Math.hypot(cb.x, cb.y, cb.z);
+  return Math.acos(dot / Math.max(magA * magC, 1e-5)) * 180 / Math.PI;
+}
+
+// MediaPipe landmark indices per finger
+const FINGERS = {
+  index:  { mcp:5,  pip:6,  dip:7,  tip:8  },
+  middle: { mcp:9,  pip:10, dip:11, tip:12 },
+  ring:   { mcp:13, pip:14, dip:15, tip:16 },
+  pinky:  { mcp:17, pip:18, dip:19, tip:20 },
+};
+
+// Per-finger curl from PIP and DIP joint angles: 0 = straight, 1 = bent.
+// 165° ≈ fully straight, 90° ≈ fully bent → maps linearly to 0 → 1.
+function getFingerCurl(lm, f) {
+  const pip = angleBetween(lm[f.mcp], lm[f.pip], lm[f.dip]);
+  const dip = angleBetween(lm[f.pip], lm[f.dip], lm[f.tip]);
+  return THREE.MathUtils.clamp((165 - (pip + dip) / 2) / 75, 0, 1);
+}
+function getFingerCurls(lm) {
+  return {
+    index:  getFingerCurl(lm, FINGERS.index),
+    middle: getFingerCurl(lm, FINGERS.middle),
+    ring:   getFingerCurl(lm, FINGERS.ring),
+    pinky:  getFingerCurl(lm, FINGERS.pinky),
+  };
+}
+
+// ── Palm-normalised feature scores ───────────────────────────────
+// Adjacent fingertip spread, normalised by palm width
+function getFingerSpreadScore(lm) {
+  const pw = getPalmWidth(lm);
+  const s  = (d3(lm[8],lm[12]) + d3(lm[12],lm[16]) + d3(lm[16],lm[20])) / (3 * pw);
+  return THREE.MathUtils.clamp((s - 0.20) / 0.45, 0, 1);
+}
+// Average fingertip distance from wrist, normalised (high = open palm)
+function getPalmOpennessScore(lm) {
+  const pw  = getPalmWidth(lm);
+  const avg = (d3(lm[8],lm[0]) + d3(lm[12],lm[0]) + d3(lm[16],lm[0]) + d3(lm[20],lm[0])) / 4;
+  return THREE.MathUtils.clamp((avg/pw - 1.05) / 0.80, 0, 1);
+}
+function getPalmCompactnessScore(lm) { return 1 - getPalmOpennessScore(lm); }
+// Thumb tip proximity to any knuckle row (high = thumb folded into fist)
+function getThumbFoldScore(lm) {
+  const pw   = getPalmWidth(lm);
+  const minD = Math.min(d3(lm[4],lm[5]), d3(lm[4],lm[9]),
+                        d3(lm[4],lm[13]), d3(lm[4],lm[17])) / pw;
+  return THREE.MathUtils.clamp(1 - minD / 1.1, 0, 1);
+}
+
+// ── Per-gesture scores [0–1] ─────────────────────────────────────
+function getPokeScore(lm) {
+  const c = getFingerCurls(lm);
+  const pw = getPalmWidth(lm);
+  const notPinch = THREE.MathUtils.clamp((d3(lm[4],lm[8])/pw - 0.25) / 0.35, 0, 1);
+  return THREE.MathUtils.clamp(
+    (1 - c.index) * 0.50 + ((c.middle + c.ring + c.pinky) / 3) * 0.35 + notPinch * 0.15,
+    0, 1);
+}
+function getPinchScore(lm) {
+  const d = getNormalizedPinchDistance(lm);
+  // Peaks at d ≈ 0.18 (fingertips touching), falls to 0 around d ≈ 0.53.
+  const distScore = THREE.MathUtils.clamp(1 - (d - 0.18) / 0.35, 0, 1);
+  // 80 % distance + 20 % facing check → robust to 2-D near-misses.
+  return THREE.MathUtils.clamp(distScore * 0.80 + getThumbIndexFacingScore(lm) * 0.20, 0, 1);
+}
+function getSmoothScore(lm) {
+  const c = getFingerCurls(lm);
+  const extCount = [c.index, c.middle, c.ring, c.pinky].filter(v => v < 0.35).length;
+  const avgExt   = ((1-c.index) + (1-c.middle) + (1-c.ring) + (1-c.pinky)) / 4;
+  return THREE.MathUtils.clamp(
+    (extCount / 4) * 0.35 + avgExt * 0.35 +
+    getFingerSpreadScore(lm) * 0.15 + getPalmOpennessScore(lm) * 0.15,
+    0, 1);
+}
+function getFistScore(lm) {
+  const c = getFingerCurls(lm);
+  const curlCount = [c.index, c.middle, c.ring, c.pinky].filter(v => v > 0.62).length;
+  const avgCurl   = (c.index + c.middle + c.ring + c.pinky) / 4;
+  return THREE.MathUtils.clamp(
+    (curlCount / 4) * 0.35 + avgCurl * 0.35 +
+    getPalmCompactnessScore(lm) * 0.15 + getThumbFoldScore(lm) * 0.10 +
+    (1 - getFingerSpreadScore(lm)) * 0.05,
+    0, 1);
+}
+
+// ── Classification ────────────────────────────────────────────────
+// calThreshold[g] = minimum score required to declare gesture g.
+// Default 0.72; lowered per-gesture after optional calibration.
+const calThreshold = { poke: 0.72, pinch: 0.72, smooth: 0.72, fist: 0.72 };
+
+function classifyGesture(lm) {
+  const scores = {
+    poke:   getPokeScore(lm),
+    pinch:  getPinchScore(lm),
+    smooth: getSmoothScore(lm),
+    fist:   getFistScore(lm),
+  };
+  const { poke, pinch, smooth, fist } = scores;
+  // Priority order: pinch is evaluated FIRST so a closing pinch
+  // (index still somewhat extended) is never overridden by poke.
+  if (pinch  > 0.74)                return { gesture: 'pinch',  scores };
+  if (poke   > 0.76 && pinch < 0.45) return { gesture: 'poke',   scores };
+  if (smooth > 0.78 && fist  < 0.45) return { gesture: 'smooth', scores };
+  if (fist   > 0.82 && smooth < 0.45) return { gesture: 'fist',   scores };
+  return { gesture: 'none', scores };
+}
+
+// ── Per-hand temporal stabilization ─────────────────────────────
+// Independent closure per hand; requires requiredFrames-1 agreements
+// in the rolling window before committing a new gesture.
+function createGestureStabilizer(requiredFrames = 5) {
+  let history = [];
+  return function(raw) {
+    history.push(raw);
+    if (history.length > requiredFrames) history.shift();
+    const counts = {};
+    for (const g of history) counts[g] = (counts[g]||0) + 1;
+    const [top, cnt] = Object.entries(counts).sort((a, b) => b[1]-a[1])[0];
+    return cnt >= requiredFrames - 1 ? top : 'none';
+  };
+}
+
+// Time-based gesture lock: holds a committed gesture for LOCK_MS
+// so mid-stroke recognition jitter cannot interrupt sculpting.
+const LOCK_MS = 180;
+function createGestureLock() {
+  let locked = 'none', until = 0;
+  return function(raw, now) {
+    if (now < until && locked !== 'none') return locked;
+    if (raw !== 'none') { locked = raw; until = now + LOCK_MS; return locked; }
+    locked = 'none';
+    return 'none';
+  };
+}
+
+const stabilizeLeft  = createGestureStabilizer(5);
+const stabilizeRight = createGestureStabilizer(5);
+const lockLeft       = createGestureLock();
+const lockRight      = createGestureLock();
+
+// ── Pinch state machine (per-hand hysteresis) ─────────────────────
+// Normalised thumb-index distance is used so the same physical gap
+// triggers pinch whether the hand is 20 cm or 80 cm from the camera.
+//
+// Two thresholds prevent flicker (hysteresis):
+//   ENTER 0.38 → fingers this close or closer starts CLOSING
+//   EXIT  0.52 → fingers must open this far before leaving PINCHED
+//
+// 3 consecutive sub-threshold frames are required to commit (CLOSING→
+// PINCHED) so a brief accidental close never fires a pull stroke.
+const PINCH_STATE = { OPEN:'open', CLOSING:'closing', PINCHED:'pinched', RELEASING:'releasing' };
+const PINCH_ENTER_DISTANCE = 0.38;
+const PINCH_EXIT_DISTANCE  = 0.52;
+
+function createPinchDetector() {
+  let state = PINCH_STATE.OPEN, holdFrames = 0;
+  return function(lm) {
+    const pinchDistance = getNormalizedPinchDistance(lm);
+    if (state === PINCH_STATE.OPEN) {
+      if (pinchDistance < PINCH_ENTER_DISTANCE) { state = PINCH_STATE.CLOSING; holdFrames = 1; }
+    } else if (state === PINCH_STATE.CLOSING) {
+      if (pinchDistance < PINCH_ENTER_DISTANCE) {
+        holdFrames++;
+        if (holdFrames >= 3) state = PINCH_STATE.PINCHED;
+      } else { state = PINCH_STATE.OPEN; holdFrames = 0; }
+    } else if (state === PINCH_STATE.PINCHED) {
+      if (pinchDistance > PINCH_EXIT_DISTANCE) state = PINCH_STATE.RELEASING;
+    } else if (state === PINCH_STATE.RELEASING) {
+      if (pinchDistance > PINCH_EXIT_DISTANCE) { state = PINCH_STATE.OPEN; holdFrames = 0; }
+      else                                      { state = PINCH_STATE.PINCHED; }
+    }
+    return { state, isPinching: state === PINCH_STATE.PINCHED, pinchDistance };
+  };
+}
+
+const leftPinchDetector  = createPinchDetector();
+const rightPinchDetector = createPinchDetector();
+
+// Main entry point — called every frame per visible hand.
+// Pipeline: smooth → pinch state machine → classify → stabilize → time-lock
+//
+// Pinch gets its own state machine (hysteresis + hold frames) so it
+// bypasses the generic temporal stabilizer — the state machine IS the
+// stabilizer for pinch.  All other gestures go through stabilize+lock.
+function detectGesture(hand, rawLm) {
+  const s = HS[hand];
+
+  // 1. EMA smooth landmarks (stored for calibration collection)
+  s.smoothedLandmarks = smoothLandmarks(s.prevSmoothedLm, rawLm, 0.35);
+  s.prevSmoothedLm    = s.smoothedLandmarks;
+
+  // 2. Per-hand pinch state machine
+  const pinchResult  = hand === 'left'
+    ? leftPinchDetector(s.smoothedLandmarks)
+    : rightPinchDetector(s.smoothedLandmarks);
+  s.pinchState    = pinchResult.state;
+  s.isPinching    = pinchResult.isPinching;
+  s.pinchDistance = pinchResult.pinchDistance;
+
+  // 3. Score-based classification (pinch already has priority in classifier)
+  const { gesture, scores } = classifyGesture(s.smoothedLandmarks);
+  s.debugScores = {
+    ...scores,
+    curls:            getFingerCurls(s.smoothedLandmarks),
+    pinchDistance:    s.pinchDistance,
+    pinchState:       s.pinchState,
+    thumbIndexFacing: getThumbIndexFacingScore(s.smoothedLandmarks),
+  };
+
+  // 4. State machine takes priority for pinch — it already provides
+  //    hold-frame debounce + exit hysteresis, so skip generic stabilizer.
+  if (s.isPinching) return 'pinch';
+
+  // 5. Temporal stabilization + time-lock for all other gestures
+  const stab = hand === 'left' ? stabilizeLeft(gesture) : stabilizeRight(gesture);
+  const now  = performance.now();
+  return hand === 'left' ? lockLeft(stab, now) : lockRight(stab, now);
+}
+
+// Map gesture → sculpt mode
+function gestureMode(gesture) {
+  switch (gesture) {
+    case 'fist':   return 'fist';
+    case 'pinch':  return 'pull';
+    case 'smooth': return 'smooth';
+    default:       return 'carve';
+  }
+}
+
+function effectiveMode(hand) { return gestureMode(HS[hand].gesture); }
+
+// ═══════════════════════════════════════════════════════════════════
+// DEFORMATION  (no auto-commit — caller commits once per frame)
+// ═══════════════════════════════════════════════════════════════════
+
+// Returns the gesture-specific strength multiplier from deformationSettings.
+function getModeStrength(mode) {
+  switch (mode) {
+    case 'carve':  return deformationSettings.carveStrength;
+    case 'pull':   return deformationSettings.pullStrength;
+    case 'smooth': return deformationSettings.smoothStrength;
+    case 'fist':   return deformationSettings.compressStrength;
+    default:       return 0.15;
+  }
+}
+
+// Smooths the per-hand "pressure" (driven by carvingDepth slider).
+// Lerps toward the current slider value so first contact ramps in gently
+// instead of applying full strength on the very first frame.
+function smoothPressure(s) {
+  if (s.smoothedPressure == null) s.smoothedPressure = carvingDepth;
+  s.smoothedPressure = THREE.MathUtils.lerp(
+    s.smoothedPressure, carvingDepth, deformationSettings.pressureSmoothing);
+  return THREE.MathUtils.clamp(
+    s.smoothedPressure, deformationSettings.minPressure, deformationSettings.maxPressure);
+}
+
+// Rate-limits deformation to ~30 updates / second.
+// Returns true when enough time has passed to apply another deform step.
+function canDeformNow(now) {
+  if (now - lastDeformTime < DEFORM_INTERVAL) return false;
+  lastDeformTime = now;
+  return true;
+}
+
+const pos = clay.geometry.attributes.position;   // live ref
+
+function commitGeometry() {
+  pos.needsUpdate = true;
+  clay.geometry.computeVertexNormals();
+  clay.geometry.computeBoundingSphere();
+}
+
+// ── Radial ring (spinning mode) ──────────────────────────────────
+function applyRadial(worldPoint, mode, brushR, strength) {
+  const lp  = clay.worldToLocal(worldPoint.clone());
+  const cY  = lp.y;
+  const str = strength * 0.022 * deformationSettings.globalStrength * getModeStrength(mode);
+
+  for (let i=0, n=pos.count; i<n; i++) {
+    const vx=pos.getX(i), vy=pos.getY(i), vz=pos.getZ(i);
+    const dy = Math.abs(vy-cY);
+    if (dy >= brushR) continue;
+    const t    = dy/brushR;
+    const fall = 1 - t*t*(3-2*t);
+    const disp = Math.min(str*fall, deformationSettings.maxDeltaPerFrame);
+    const vr   = Math.sqrt(vx*vx+vz*vz);
+    if (vr<.001) continue;
+    const rx=vx/vr, rz=vz/vr;
+    switch (mode) {
+      case 'carve': pos.setX(i,vx-rx*disp); pos.setZ(i,vz-rz*disp); break;
+      case 'pull':  pos.setX(i,vx+rx*disp); pos.setZ(i,vz+rz*disp); break;
+      case 'smooth': break;
+    }
+  }
+  smoothRadial(cY, brushR*1.2, mode==='smooth' ? .38 : .05);
+}
+
+function smoothRadial(cY, halfR, factor) {
+  const verts=[];
+  for (let i=0, n=pos.count; i<n; i++) {
+    const y=pos.getY(i), dy=Math.abs(y-cY);
+    if (dy>=halfR) continue;
+    const x=pos.getX(i), z=pos.getZ(i);
+    const r=Math.sqrt(x*x+z*z);
+    if (r<.001) continue;
+    verts.push({i,x,y,z,r,dy});
+  }
+  const nY=halfR*.55;
+  for (const v of verts) {
+    let sR=0, c=0;
+    for (const n of verts) if (Math.abs(v.y-n.y)<nY) { sR+=n.r; c++; }
+    if (c<2) continue;
+    const bl=(1-v.dy/halfR)*factor;
+    const sc=(v.r+(sR/c-v.r)*bl)/v.r;
+    pos.setX(v.i,v.x*sc); pos.setZ(v.i,v.z*sc);
+  }
+}
+
+// ── Local sphere (paused mode) ───────────────────────────────────
+function applyLocal(worldPoint, mode, brushR, strength) {
+  const lp  = clay.worldToLocal(worldPoint.clone());
+  const nrm = clay.geometry.attributes.normal;
+  const str = strength * 0.022 * deformationSettings.globalStrength * getModeStrength(mode);
+  const r2  = brushR*brushR;
+
+  for (let i=0, n=pos.count; i<n; i++) {
+    const vx=pos.getX(i), vy=pos.getY(i), vz=pos.getZ(i);
+    const dx=vx-lp.x, dy=vy-lp.y, dz=vz-lp.z;
+    const d2=dx*dx+dy*dy+dz*dz;
+    if (d2>=r2) continue;
+    const t=Math.sqrt(d2)/brushR;
+    const fall=1-t*t*(3-2*t);
+    const disp=Math.min(str*fall, deformationSettings.maxDeltaPerFrame);
+    const nx=nrm.getX(i), ny=nrm.getY(i), nz=nrm.getZ(i);
+    switch (mode) {
+      case 'carve': pos.setXYZ(i,vx-nx*disp,vy-ny*disp,vz-nz*disp); break;
+      case 'pull':  pos.setXYZ(i,vx+nx*disp,vy+ny*disp,vz+nz*disp); break;
+      case 'smooth': break;
+    }
+  }
+  smoothLocal(lp, brushR*1.15, mode==='smooth' ? .42 : .18);
+}
+
+function smoothLocal(lc, radius, factor) {
+  const r2=radius*radius, nr2=(radius*.55)*(radius*.55);
+  const verts=[];
+  for (let i=0, n=pos.count; i<n; i++) {
+    const x=pos.getX(i), y=pos.getY(i), z=pos.getZ(i);
+    const dx=x-lc.x, dy=y-lc.y, dz=z-lc.z;
+    const d2=dx*dx+dy*dy+dz*dz;
+    if (d2<r2) verts.push({i,x,y,z,d2});
+  }
+  for (const v of verts) {
+    let sx=0,sy=0,sz=0,c=0;
+    for (const n of verts) {
+      const ddx=v.x-n.x,ddy=v.y-n.y,ddz=v.z-n.z;
+      if (ddx*ddx+ddy*ddy+ddz*ddz<nr2){ sx+=n.x; sy+=n.y; sz+=n.z; c++; }
+    }
+    if (c>1) {
+      const bl=(1-Math.sqrt(v.d2)/radius)*factor;
+      pos.setX(v.i,v.x+(sx/c-v.x)*bl);
+      pos.setY(v.i,v.y+(sy/c-v.y)*bl);
+      pos.setZ(v.i,v.z+(sz/c-v.z)*bl);
+    }
+  }
+}
+
+// ── Local deform at a pre-converted local-space point, no smoothing ─
+// Softer per-step strength (0.014 vs applyLocal's 0.022) because
+// applyLocalStroke may call this several times per frame for fast strokes.
+function applyLocalAtPoint(lp, mode, brushR, strength) {
+  const nrm = clay.geometry.attributes.normal;
+  const str = strength * 0.014 * deformationSettings.globalStrength * getModeStrength(mode);
+  const r2  = brushR * brushR;
+  for (let i=0, n=pos.count; i<n; i++) {
+    const vx=pos.getX(i), vy=pos.getY(i), vz=pos.getZ(i);
+    const dx=vx-lp.x, dy=vy-lp.y, dz=vz-lp.z;
+    const d2v=dx*dx+dy*dy+dz*dz;
+    if (d2v>=r2) continue;
+    const t    = Math.sqrt(d2v)/brushR;
+    const fall = 1-t*t*(3-2*t);   // smoothstep — strong center, soft edges
+    const disp = Math.min(str*fall, deformationSettings.maxDeltaPerFrame);
+    const nx=nrm.getX(i), ny=nrm.getY(i), nz=nrm.getZ(i);
+    switch(mode) {
+      case 'carve': pos.setXYZ(i,vx-nx*disp,vy-ny*disp,vz-nz*disp); break;
+      case 'pull':  pos.setXYZ(i,vx+nx*disp,vy+ny*disp,vz+nz*disp); break;
+    }
+  }
+}
+
+// ── Stroke interpolation for smooth, continuous local sculpting ───────
+// Fills the gap between previous and current contact points so fast
+// hand movement creates one continuous stroke, not separated dents.
+// Ends with a single blended smoothing pass for the clay-like finish.
+function applyLocalStroke(prevWorld, currWorld, mode, brushR, strength) {
+  const cL = clay.worldToLocal(currWorld.clone());
+  const pL = prevWorld ? clay.worldToLocal(prevWorld.clone()) : null;
+
+  if (!pL) {
+    // First contact this stroke — single sample
+    applyLocalAtPoint(cL, mode, brushR, strength);
+  } else {
+    const dist  = pL.distanceTo(cL);
+    // Step spacing = 35% of brush radius → slight overlap for seamless fill
+    const steps = Math.min(Math.ceil(dist / (brushR * 0.35)), 10);
+    const n     = Math.max(steps, 1);
+    // Start at i=1 so we don't re-deform the already-processed previous point
+    for (let i = 1; i <= n; i++) {
+      applyLocalAtPoint(pL.clone().lerp(cL, i/n), mode, brushR, strength);
+    }
+  }
+
+  // One post-stroke smoothing pass blends the deformation into the surface
+  smoothLocal(cL, brushR * 1.3, mode === 'smooth' ? 0.44 : 0.22);
+}
+
+// ── Vertical extension: stretch the clay profile from contactLocalY upward ──
+// Unlike the old sphere-brush approach, this touches EVERY vertex in the mesh.
+// Vertices at or below the contact Y are anchored (delta = 0).
+// Vertices above the contact Y move upward by:
+//   liftAmt × smoothstep(aboveHand) × normalizedHeight
+// — the smoothstep gives a gentle gradient from the contact line; the
+// normalizedHeight weight makes the very top of the clay move the most,
+// while the mid-section moves moderately. This stretches the whole profile,
+// not just a local bump.
+// Radial narrowing (22% of lift) simulates real clay volume redistribution.
+// Works for both one-hand and two-hand spinning — the Y-only deformation is
+// inherently radially symmetric around the Y axis.
+function applyVerticalExtension(contactLocalY, liftAmt) {
+  // Current bounding Y extents (must be computed fresh — clay changes each frame)
+  let minY = Infinity, maxY = -Infinity;
+  for (let i = 0, n = pos.count; i < n; i++) {
+    const y = pos.getY(i);
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+  }
+  const height = Math.max(maxY - minY, 0.001);
+
+  for (let i = 0, n = pos.count; i < n; i++) {
+    const vx = pos.getX(i), vy = pos.getY(i), vz = pos.getZ(i);
+
+    // aboveHand: 0 at or below contact, grows positively above it
+    const aboveHand = Math.max(0, (vy - contactLocalY) / height);
+    if (aboveHand === 0) continue;   // below contact → fully anchored
+
+    // Smoothstep on aboveHand → gentle gradient from contact upward
+    const t  = Math.min(aboveHand, 1);
+    const st = t * t * (3 - 2 * t);
+
+    // Multiply by normalised height so the top of the clay moves most
+    const normH   = (vy - minY) / height;
+    const falloff = st * normH;
+
+    const lift = liftAmt * falloff;
+    if (lift < 0.0001) continue;
+
+    // Inward narrowing: ~22% of lift — clay feels pulled taller, not scaled
+    const vr = Math.sqrt(vx*vx + vz*vz);
+    if (vr < 0.001) { pos.setY(i, vy + lift); continue; }
+    const rx = vx/vr, rz = vz/vr;
+    pos.setX(i, vx - rx * lift * 0.22);
+    pos.setY(i, vy + lift);
+    pos.setZ(i, vz - rz * lift * 0.22);
+  }
+
+  // One radial-smoothing pass to remove any step artifacts at the contact line
+  smoothRadial(contactLocalY, height * 0.35, 0.16);
+}
+
+function applyDeform(worldPoint, mode) {
+  if (isSpinning) applyRadial(worldPoint, mode, brushRadius, carvingDepth);
+  else            applyLocal (worldPoint, mode, brushRadius, carvingDepth);
+}
+
+function resetClay() {
+  pos.array.set(origPositions); commitGeometry();
+  clayTopY = CLAY_H / 2;
+}
+
+// ── Fist compression (vertical press with radial bulge) ───────────
+// amount: pre-computed safe per-frame step (see getSafeCompressionAmount).
+// No additional multiplier here — caller is responsible for clamping.
+function applyFistCompression(amount) {
+  // Find live bounding Y extents
+  let minY = Infinity, maxY = -Infinity;
+  for (let i = 0, n = pos.count; i < n; i++) {
+    const y = pos.getY(i);
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+  }
+  const height = maxY - minY;
+  if (height < 0.25) return;      // already very flat — stop compressing
+
+  clayTopY = maxY;                 // keep ring anchored to real clay top
+
+  const str = amount;              // already capped by getSafeCompressionAmount
+
+  for (let i = 0, n = pos.count; i < n; i++) {
+    const vx = pos.getX(i);
+    const vy = pos.getY(i);
+    const vz = pos.getZ(i);
+
+    // t = 0 at bottom → 1 at top
+    const t = (vy - minY) / height;
+
+    // Upper vertices move down more than lower ones
+    const yDelta = str * t;
+
+    // Radial bulge peaks at the equator (sin curve gives soft clay feel)
+    const vr = Math.sqrt(vx * vx + vz * vz);
+    if (vr < 0.001) {
+      pos.setY(i, vy - yDelta);
+      continue;
+    }
+    const rx = vx / vr, rz = vz / vr;
+    const bulge = Math.sin(t * Math.PI);   // 0 at base & top, 1 at middle
+    const rDelta = str * 0.38 * bulge;
+
+    pos.setX(i, vx + rx * rDelta);
+    pos.setY(i, vy - yDelta);
+    pos.setZ(i, vz + rz * rDelta);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// TWO-HAND GESTURE (compress / pull-apart)
+// ═══════════════════════════════════════════════════════════════════
+let prevBothDist = null;
+
+// Two contact points are "at similar height" when both hands are collaring
+// the clay at roughly the same level — triggers symmetric collar lift.
+// 0.45 world units ≈ 15% of the default clay height.
+function handsAtSimilarHeight(ptA, ptB) {
+  return Math.abs(ptA.y - ptB.y) < 0.45;
+}
+
+function processTwoHand(leftHit, rightHit) {
+  const lp = leftHit.point, rp = rightHit.point;
+  const dist = lp.distanceTo(rp);
+
+  if (prevBothDist !== null) {
+    const delta = dist - prevBothDist;
+    if (Math.abs(delta) > 0.004) {
+      const mid  = lp.clone().add(rp).multiplyScalar(.5);
+      const mode = delta > 0 ? 'pull' : 'carve';
+      const str  = Math.min(Math.abs(delta)*14, 1.8);
+      if (isSpinning) {
+        applyRadial(mid, mode, brushRadius*1.5, str);
+      } else {
+        applyLocal(lp, mode, brushRadius, str);
+        applyLocal(rp, mode, brushRadius, str);
+      }
+    }
+  }
+  prevBothDist = dist;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// STATUS
+// ═══════════════════════════════════════════════════════════════════
+const statusEl = document.getElementById('status');
+const statusTx = document.getElementById('status-text');
+function setStatus(msg, cls='') { statusEl.className=cls; statusTx.textContent=msg; }
+
+// ═══════════════════════════════════════════════════════════════════
+// MEDIAPIPE
+// ═══════════════════════════════════════════════════════════════════
+let handLandmarker = null;
+
+async function loadMediaPipe() {
+  setStatus('Loading hand model…');
+  const { HandLandmarker, FilesetResolver } = await import(
+    'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.12/vision_bundle.mjs'
+  );
+  const fs = await FilesetResolver.forVisionTasks(
+    'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.12/wasm'
+  );
+  handLandmarker = await HandLandmarker.createFromOptions(fs, {
+    baseOptions: {
+      modelAssetPath: './hand_landmarker.task',   // local file served by HTTP server
+      delegate: 'GPU',
+    },
+    runningMode: 'VIDEO',
+    numHands: 2,
+    minHandDetectionConfidence: 0.5,
+    minHandPresenceConfidence:  0.5,
+    minTrackingConfidence:      0.5,
+  });
+  setStatus('Ready — show your hands');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// WEBCAM + DETECTION LOOP
+// ═══════════════════════════════════════════════════════════════════
+const video   = document.getElementById('webcam');
+const oCanvas = document.getElementById('hand-overlay');
+const octx    = oCanvas.getContext('2d');
+let webcamRunning = false, lastVidTime = -1;
+
+async function startCam() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { width:640, height:480, facingMode:'user' },
+    });
+    video.srcObject = stream;
+    video.addEventListener('loadeddata', () => {
+      webcamRunning = true;
+      setStatus('Show your hands to the camera');
+      requestAnimationFrame(detectLoop);
+    });
+  } catch(e) { setStatus('⚠ Camera error: ' + e.message); }
+}
+
+const GESTURE_NAMES = { fist:'✊ Fist', poke:'☝ Poke', pinch:'🤏 Pinch', smooth:'🖐 Smooth', none:'—' };
+
+function detectLoop() {
+  if (!webcamRunning || !handLandmarker) { requestAnimationFrame(detectLoop); return; }
+
+  const now = performance.now();
+  if (video.currentTime !== lastVidTime) {
+    lastVidTime = video.currentTime;
+    const res = handLandmarker.detectForVideo(video, now);
+
+    octx.clearRect(0,0,220,165);
+
+    // Reset both hands
+    HS.left.visible  = false;  HS.left.tipNDC  = null;
+    HS.right.visible = false;  HS.right.tipNDC = null;
+
+    if (res.landmarks && res.landmarks.length > 0) {
+      for (let h=0; h<res.landmarks.length; h++) {
+        const lm   = res.landmarks[h];
+        // MediaPipe for selfie camera: labels are from user's perspective
+        const raw  = res.handedness[h][0].categoryName; // "Left" or "Right"
+        const key  = raw.toLowerCase();
+        const s    = HS[key];
+        if (!s) continue;
+
+        s.visible   = true;
+        s.landmarks = lm;
+        s.gesture   = detectGesture(key, lm);
+
+        // Calibration: collect one frame per visible hand while step is active
+        if (cal.active && s.smoothedLandmarks) collectCalibrationFrame(s.smoothedLandmarks);
+
+        // Interaction point: midpoint of thumb+index when pinching (more
+        // natural pull-clay feel), index tip otherwise.
+        const tip  = s.isPinching
+          ? { x: (lm[4].x + lm[8].x) * 0.5, y: (lm[4].y + lm[8].y) * 0.5 }
+          : lm[8];
+        const rawX = 1 - tip.x;
+        const rawY = tip.y;
+        s.smoothX  = s.smoothX*(1-ALPHA) + rawX*ALPHA;
+        s.smoothY  = s.smoothY*(1-ALPHA) + rawY*ALPHA;
+        s.tipNDC   = new THREE.Vector2(s.smoothX*2-1, -(s.smoothY*2-1));
+
+        // Draw all 5 fingertip dots — thumb(4) index(8) middle(12) ring(16) pinky(20)
+        const tipIndices = [4, 8, 12, 16, 20];
+        for (const idx of tipIndices) {
+          const f = lm[idx];
+          const fx = f.x * 220, fy = f.y * 165;
+          const isActive = (idx === 8); // index tip is the interaction point
+          octx.beginPath();
+          octx.arc(fx, fy, isActive ? 5 : 3.5, 0, Math.PI * 2);
+          octx.fillStyle = isActive ? s.hexStr + 'ee' : s.hexStr + '88';
+          octx.fill();
+          if (isActive) {
+            octx.strokeStyle = 'rgba(255,255,255,0.6)';
+            octx.lineWidth = 1;
+            octx.stroke();
+          }
+        }
+
+        // Update UI gesture pill (preserve .ghand span structure)
+        const pill = document.getElementById(`gest-${key}`);
+        if (pill) {
+          pill.innerHTML = `<span class="ghand">${key}</span>${s.gesture}`;
+          pill.className = `gesture-pill active-${key}`;
+        }
+      }
+    }
+
+    // Clear gesture pills for invisible hands
+    for (const key of ['left','right']) {
+      if (!HS[key].visible) {
+        const pill = document.getElementById(`gest-${key}`);
+        if (pill) { pill.innerHTML = `<span class="ghand">${key}</span>—`; pill.className='gesture-pill'; }
+      }
+    }
+
+    // Status
+    const visible = ['left','right'].filter(k => HS[k].visible);
+    if (visible.length===2)      setStatus('Both hands detected — sculpt the clay','hand');
+    else if (visible.length===1) setStatus(`${visible[0]} hand — touch the clay to sculpt`,'hand');
+    else                         setStatus('Show one or both hands to the camera');
+  }
+
+  requestAnimationFrame(detectLoop);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ANIMATION LOOP
+// ═══════════════════════════════════════════════════════════════════
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+
+  if (isSpinning) {
+    autoRotationAngle    += dt * rotSpeed * 0.75;
+    wheelDisk.rotation.y += dt * rotSpeed * 0.35;
+  }
+  // Clay rotation = automatic spin + manual drag offset (always combined)
+  clay.rotation.y = autoRotationAngle + manualRotationY;
+
+  // While drag-rotating: display hands but skip ALL deformation
+  const skipDeform = isDraggingToRotate;
+  // True only when the auto-wheel motor is actually spinning.
+  // Manual drag-to-inspect does NOT count — dragging should never
+  // trigger the symmetric two-hand collar lift.
+  const wheelIsActuallyRotating = isSpinning && !isDraggingToRotate;
+
+  // Throttle mesh changes to ~30 fps — keeps rendering smooth while
+  // preventing rapid small-frame deltas from accumulating into extreme shapes.
+  const nowMs     = performance.now();
+  const canDeform = !showingInstructions && canDeformNow(nowMs);
+
+  let didSculpt = false;
+  const hits    = {};
+  const liftMap = {};   // key → { contactPt, yDelta } for smooth-lift hands
+
+  for (const key of ['left','right']) {
+    const s = HS[key];
+    if (!s.tipNDC || !s.visible) {
+      cursors[key].visible = false;
+      rings[key].visible   = false;
+      continue;
+    }
+
+    ndcVec.copy(s.tipNDC);
+    raycaster.setFromCamera(ndcVec, camera);
+    const intersects = raycaster.intersectObject(clay);
+
+    if (intersects.length > 0) {
+      const hit = intersects[0];
+
+      // ── Contact point smoothing (reduces hand-tracking jitter) ────
+      // 40% lerp each frame ≈ ~40 ms lag at 60 fps — barely noticeable
+      // but eliminates the single-frame spikes that create rough dents.
+      if (!s.smoothHit) s.smoothHit = hit.point.clone();
+      else              s.smoothHit.lerp(hit.point, 0.40);
+      const contactPt = s.smoothHit.clone();
+
+      hits[key] = { point: contactPt, face: hit.face };
+
+      // Cursor at smoothed position
+      cursors[key].position.copy(contactPt);
+      cursors[key].visible = true;
+
+      // Ring: horizontal for spinning, facing camera for paused
+      rings[key].position.copy(contactPt);
+      if (isSpinning) {
+        rings[key].rotation.set(Math.PI/2, 0, 0);
+      } else {
+        const wn = hit.face.normal.clone().transformDirection(clay.matrixWorld);
+        rings[key].lookAt(contactPt.clone().add(wn));
+      }
+      rings[key].scale.setScalar(brushRadius);
+      rings[key].visible = true;
+
+      // Sculpt — fist hands skip normal deform; drag-rotate skips all deform
+      if (s.gesture !== 'fist' && !skipDeform) {
+        const mode      = effectiveMode(key);
+        const pressure  = smoothPressure(s);   // ramps up on first contact, clamped
+        // Upward motion = positive world-Y delta (clay Y axis == world Y axis)
+        const yDelta = s.prevHitWorld ? contactPt.y - s.prevHitWorld.y : 0;
+        const isLift = mode === 'smooth' && yDelta > 0.005;
+
+        if (isLift) {
+          // Route to post-loop smooth-lift dispatch; prevHitWorld tracks every frame
+          liftMap[key] = { contactPt: contactPt.clone(), yDelta, pressure };
+          s.prevHitWorld = contactPt.clone();
+        } else if (canDeform) {
+          if (wheelIsActuallyRotating) {
+            applyRadial(contactPt, mode, brushRadius, carvingDepth);
+          } else {
+            applyLocalStroke(s.prevHitWorld, contactPt, mode, brushRadius, carvingDepth);
+          }
+          s.prevHitWorld = contactPt.clone();
+          didSculpt = true;
+        }
+        // On skipped frames prevHitWorld is NOT updated so the next deform step
+        // spans the full 33 ms of accumulated movement for smoother strokes.
+      }
+
+    } else {
+      cursors[key].visible = false;
+      rings[key].visible   = false;
+      // Clear tracking so next touch starts fresh (no stale stroke jump)
+      s.smoothHit    = null;
+      s.prevHitWorld = null;
+    }
+  }
+
+  // ── Fist compression (priority over all other deformations) ───────
+  // Empty during drag-rotate so compression ring fades out naturally
+  const fistHits = skipDeform ? [] : ['left','right'].filter(k => hits[k] && HS[k].gesture === 'fist');
+  if (fistHits.length > 0 && canDeform) {
+    // Safe per-frame compression step: capped at maxDeltaPerFrame.
+    // Two fists press 1.6× harder than one but never exceed the cap.
+    const twoFist        = fistHits.length >= 2;
+    const compressionAmt = Math.min(
+      carvingDepth * deformationSettings.globalStrength * deformationSettings.compressStrength * (twoFist ? 1.6 : 1.0),
+      deformationSettings.maxDeltaPerFrame
+    );
+    applyFistCompression(compressionAmt);
+    didSculpt = true;
+    prevBothDist = null;   // reset squeeze tracking while fists active
+  }
+
+  // Compression ring animation
+  if (fistHits.length > 0) {
+    compressionRingPhase = (compressionRingPhase + dt * 2.0) % 1;
+    const ringScale = 0.55 + compressionRingPhase * 1.6;
+    const boost = fistHits.length === 2 ? 1.3 : 1.0;
+    compressionRingMat.opacity = Math.min((1 - compressionRingPhase) * 0.75 * boost, 0.9);
+    compressionRing.position.set(0, clayTopY, 0);
+    compressionRing.scale.setScalar(ringScale);
+    compressionRing.visible = true;
+  } else {
+    compressionRingMat.opacity = Math.max(0, compressionRingMat.opacity - dt * 5);
+    if (compressionRingMat.opacity <= 0) compressionRing.visible = false;
+    compressionRingPhase = 0;
+  }
+
+  // ── Vertical extension (after fist, before two-hand squeeze) ─────
+  // contactPt is in Three.js world space; because clay only rotates around Y,
+  // worldToLocal leaves the Y coordinate unchanged → contactPt.y == localY.
+  const liftKeys = Object.keys(liftMap);
+  if (liftKeys.length > 0 && fistHits.length === 0 && canDeform) {
+    const la = liftMap.left, ra = liftMap.right;
+    // Symmetric collar lift: auto-wheel must be spinning (not manual drag),
+    // BOTH hands must be lifting, AND they must be at a similar clay height.
+    const twoHandSymmetric = wheelIsActuallyRotating &&
+      liftKeys.length === 2 &&
+      handsAtSimilarHeight(la.contactPt, ra.contactPt);
+
+    if (twoHandSymmetric) {
+      const midLocalY = (la.contactPt.y + ra.contactPt.y) * 0.5;
+      const avgDelta  = (la.yDelta + ra.yDelta) * 0.5;
+      const avgPressure = ((la.pressure ?? carvingDepth) + (ra.pressure ?? carvingDepth)) * 0.5;
+      // Lift scales with motion, pressure, and settings — hard cap at maxDeltaPerFrame.
+      const liftAmt = Math.min(
+        avgDelta * 3.5 * avgPressure * deformationSettings.globalStrength * deformationSettings.liftStrength,
+        deformationSettings.maxDeltaPerFrame);
+      applyVerticalExtension(midLocalY, liftAmt);
+    } else {
+      for (const key of liftKeys) {
+        const { contactPt, yDelta, pressure } = liftMap[key];
+        const liftAmt = Math.min(
+          yDelta * 3.5 * (pressure ?? carvingDepth) * deformationSettings.globalStrength * deformationSettings.liftStrength,
+          deformationSettings.maxDeltaPerFrame * 0.85);
+        applyVerticalExtension(contactPt.y, liftAmt);
+      }
+    }
+    didSculpt = true;
+  }
+
+  // ── Two-hand squeeze / pull-apart (skipped when fist or lift active) ─
+  if (hits.left && hits.right && fistHits.length === 0 && liftKeys.length === 0) {
+    processTwoHand(hits.left, hits.right);
+    didSculpt = true;
+  }
+
+  // ── Status bar ───────────────────────────────────────────────────
+  const anyHit = hits.left || hits.right;
+  if (fistHits.length === 2) {
+    setStatus('✊✊ Compressing clay…', 'sculpt');
+  } else if (fistHits.length === 1) {
+    setStatus('✊ Pressing down…', 'sculpt');
+  } else if (liftKeys.length === 2 && wheelIsActuallyRotating &&
+             liftMap.left && liftMap.right &&
+             handsAtSimilarHeight(liftMap.left.contactPt, liftMap.right.contactPt)) {
+    setStatus('🖐🖐 Stretching clay taller…', 'sculpt');
+  } else if (liftKeys.length > 0) {
+    setStatus('🖐 Lifting clay…', 'sculpt');
+  } else if (hits.left && hits.right) {
+    setStatus('Both hands sculpting…', 'sculpt');
+  } else if (anyHit) {
+    const who = hits.left ? 'Left' : 'Right';
+    const mode = hits.left ? effectiveMode('left') : effectiveMode('right');
+    setStatus(`${who}: ${mode}ing…`, 'sculpt');
+  } else {
+    prevBothDist = null;
+    if (HS.left.visible || HS.right.visible) setStatus('Hand detected — touch the clay to sculpt','hand');
+    else setStatus('Show one or both hands to the camera');
+  }
+
+  // Commit geometry once per frame
+  if (didSculpt) commitGeometry();
+
+  renderer.render(scene, camera);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// GESTURE CALIBRATION (optional — adjusts per-gesture thresholds)
+// ═══════════════════════════════════════════════════════════════════
+// Steps walk the user through each gesture and collect FRAMES_NEEDED
+// smoothed landmark frames.  For each step, the 5th-percentile score
+// of that gesture is taken as the new threshold (minus a 0.04 margin),
+// clamped to [0.50, 0.88].  Lower steps = stricter; higher = more
+// sensitive.  Reset buttons restore the defaults (0.72).
+
+const CAL_STEPS = [
+  { gesture: 'poke',   icon: '— I —',   label: 'point finger' },
+  { gesture: 'pinch',  icon: '— II —',  label: 'pinch thumb + index' },
+  { gesture: 'smooth', icon: '— III —', label: 'open flat hand' },
+  { gesture: 'fist',   icon: '— IV —',  label: 'make a fist' },
+];
+
+const cal = {
+  active: false,   // true while calibration session is in progress
+  step: 0,         // index into CAL_STEPS
+  frames: [],      // score objects collected this step
+  FRAMES_NEEDED: 30,
+};
+
+function updateCalUI() {
+  const pct = Math.min(cal.frames.length / cal.FRAMES_NEEDED, 1) * 100;
+  const fill = document.getElementById('cal-fill');
+  if (fill) fill.style.width = pct + '%';
+}
+
+function showCalStep(step) {
+  const info = CAL_STEPS[step];
+  const overlay = document.getElementById('cal-overlay');
+  if (!overlay) return;
+  document.getElementById('cal-icon').textContent         = info.icon;
+  document.getElementById('cal-gesture-name').textContent = info.label;
+  document.getElementById('cal-step-count').textContent   = `step 0${step+1} / 0${CAL_STEPS.length}`;
+  document.getElementById('cal-fill').style.width         = '0%';
+  overlay.style.display = 'flex';
+}
+
+function hideCalOverlay() {
+  const overlay = document.getElementById('cal-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+// Called each frame per visible hand while cal.active is true.
+// When enough frames are collected, computes a personalised threshold
+// for the current step's gesture and advances to the next step.
+function collectCalibrationFrame(lm) {
+  if (!cal.active || cal.step >= CAL_STEPS.length) return;
+  const target = CAL_STEPS[cal.step].gesture;
+  cal.frames.push({
+    poke:   getPokeScore(lm),
+    pinch:  getPinchScore(lm),
+    smooth: getSmoothScore(lm),
+    fist:   getFistScore(lm),
+  });
+  updateCalUI();
+  if (cal.frames.length >= cal.FRAMES_NEEDED) {
+    // 5th percentile of the target score across collected frames
+    const vals = cal.frames.map(s => s[target]).sort((a, b) => a - b);
+    const p5   = vals[Math.floor(vals.length * 0.05)];
+    // New threshold = p5 − margin, clamped so it stays usable
+    calThreshold[target] = THREE.MathUtils.clamp(p5 - 0.04, 0.50, 0.88);
+    cal.frames = [];
+    cal.step++;
+    if (cal.step >= CAL_STEPS.length) {
+      // All steps done — close overlay
+      cal.active = false;
+      hideCalOverlay();
+    } else {
+      showCalStep(cal.step);
+    }
+  }
+}
+
+function startCalibration() {
+  cal.active = true;
+  cal.step   = 0;
+  cal.frames = [];
+  showCalStep(0);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// UI
+// ═══════════════════════════════════════════════════════════════════
+function wire(id, valId, cb, fmt = v=>v.toFixed(2)) {
+  const el=document.getElementById(id), vl=document.getElementById(valId);
+  el.addEventListener('input', ()=>{ const v=parseFloat(el.value); cb(v); vl.textContent=fmt(v); });
+}
+wire('s-sensitivity','v-sensitivity', v=>{ deformationSettings.globalStrength=v; });
+wire('s-brush','v-brush', v=>{ brushRadius=v; });
+wire('s-depth','v-depth', v=>{ carvingDepth=v; });
+
+document.getElementById('clay-color').addEventListener('input', e => clayMat.color.set(e.target.value));
+
+// Actions
+document.getElementById('btn-reset').addEventListener('click', resetClay);
+
+const pauseBtn  = document.getElementById('btn-pause');
+const dragHint  = document.getElementById('drag-hint');
+const threeCanvas = document.getElementById('three-canvas');
+
+function setDragCursor(dragging) {
+  threeCanvas.style.cursor = dragging ? 'grabbing' : (!isSpinning ? 'grab' : '');
+}
+
+function endDrag() {
+  if (!isDraggingToRotate) return;
+  isDraggingToRotate = false;
+  // Clear stroke tracking so first sculpt contact after drag starts fresh
+  HS.left.smoothHit  = null;  HS.left.prevHitWorld  = null;
+  HS.right.smoothHit = null;  HS.right.prevHitWorld = null;
+  setDragCursor(false);
+}
+
+// Pointer drag — only active while wheel is paused
+threeCanvas.addEventListener('pointerdown', e => {
+  // Ignore clicks that land on the UI panel (it's above the canvas)
+  if (e.target !== threeCanvas) return;
+  if (!isSpinning) {
+    isDraggingToRotate = true;
+    dragLastX = e.clientX;
+    setDragCursor(true);
+    // Suspend hand contact points to prevent a stroke-jump when drag ends
+    HS.left.smoothHit  = null;  HS.left.prevHitWorld  = null;
+    HS.right.smoothHit = null;  HS.right.prevHitWorld = null;
+    threeCanvas.setPointerCapture(e.pointerId);
+  }
+});
+
+threeCanvas.addEventListener('pointermove', e => {
+  if (!isDraggingToRotate) return;
+  const dx = e.clientX - dragLastX;
+  dragLastX = e.clientX;
+  manualRotationY += dx * 0.008;   // ~0.5° per pixel — comfortable inspect speed
+});
+
+threeCanvas.addEventListener('pointerup',    endDrag);
+threeCanvas.addEventListener('pointercancel', endDrag);
+
+pauseBtn.addEventListener('click', ()=>{
+  isSpinning = !isSpinning;
+  pauseBtn.textContent = isSpinning ? '⏸ Pause' : '▶ Play';
+  pauseBtn.style.borderColor = isSpinning ? '' : 'var(--accent-olive)';
+  pauseBtn.style.color = isSpinning ? '' : 'var(--accent-olive)';
+  // Show/hide inspect hint and cursor
+  dragHint.style.display = isSpinning ? 'none' : 'block';
+  setDragCursor(false);
+  // If resuming spin while drag was active, cancel drag cleanly
+  if (isSpinning && isDraggingToRotate) endDrag();
+});
+
+const wireBtn = document.getElementById('btn-wire');
+wireBtn.addEventListener('click', ()=>{
+  showWire = !showWire;
+  clayMat.wireframe = showWire;
+  wireBtn.textContent = showWire ? '■ Solid' : '⌗ Wire';
+});
+
+document.getElementById('btn-calibrate').addEventListener('click', startCalibration);
+document.getElementById('cal-skip').addEventListener('click', ()=>{
+  cal.active = false;
+  hideCalOverlay();
+});
+
+document.getElementById('btn-save').addEventListener('click', ()=>{
+  renderer.render(scene, camera);
+  Object.assign(document.createElement('a'), {
+    href: renderer.domElement.toDataURL('image/png'),
+    download: `pottery-${Date.now()}.png`,
+  }).click();
+});
+
+window.addEventListener('resize', ()=>{
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// DEMO VIDEO
+// ═══════════════════════════════════════════════════════════════════
+const demoOverlay = document.getElementById('demo-overlay');
+const demoVideo   = document.getElementById('demo-video');
+const demoPlayBtn = document.getElementById('demo-play-btn');
+const demoRange   = document.getElementById('demo-range');
+const demoTime    = document.getElementById('demo-time');
+
+const fmt = s => {
+  if (!isFinite(s) || s < 0) return '0:00';
+  const m = Math.floor(s / 60), sec = Math.floor(s % 60);
+  return `${m}:${sec.toString().padStart(2, '0')}`;
+};
+
+// Keep range thumb in sync while video plays
+let isScrubbing = false;
+let scrubWasPlaying = false;
+
+const startScrub = () => {
+  isScrubbing = true;
+  scrubWasPlaying = !demoVideo.paused;
+  demoVideo.pause();
+};
+const duringScrub = () => {
+  const t = (demoRange.value / 1000) * (demoVideo.duration || 0);
+  demoVideo.currentTime = t;
+  demoTime.textContent = `${fmt(t)} / ${fmt(demoVideo.duration)}`;
+};
+const endScrub = () => {
+  if (!isScrubbing) return;
+  isScrubbing = false;
+  const t = (demoRange.value / 1000) * (demoVideo.duration || 0);
+  demoVideo.currentTime = t;
+  if (scrubWasPlaying) demoVideo.play();
+};
+
+demoRange.addEventListener('mousedown',  startScrub);
+demoRange.addEventListener('touchstart', startScrub, { passive: true });
+demoRange.addEventListener('input',      duringScrub);
+demoRange.addEventListener('mouseup',    endScrub);
+demoRange.addEventListener('touchend',   endScrub,   { passive: true });
+demoRange.addEventListener('change',     endScrub);
+
+demoVideo.addEventListener('timeupdate', () => {
+  if (!demoVideo.duration || isScrubbing) return;
+  demoRange.value = (demoVideo.currentTime / demoVideo.duration) * 1000;
+  demoTime.textContent = `${fmt(demoVideo.currentTime)} / ${fmt(demoVideo.duration)}`;
+});
+demoVideo.addEventListener('loadedmetadata', () => {
+  demoTime.textContent = `0:00 / ${fmt(demoVideo.duration)}`;
+});
+
+demoVideo.addEventListener('play',  () => { demoPlayBtn.textContent = '⏸ pause'; });
+demoVideo.addEventListener('pause', () => { demoPlayBtn.textContent = demoVideo.ended ? '↺ replay' : '▶ play'; });
+demoVideo.addEventListener('ended', () => { demoPlayBtn.textContent = '↺ replay'; });
+
+demoPlayBtn.addEventListener('click', () => {
+  if (demoVideo.ended) { demoVideo.currentTime = 0; demoRange.value = 0; demoVideo.play(); }
+  else if (demoVideo.paused) demoVideo.play();
+  else demoVideo.pause();
+});
+document.getElementById('demo-skip-back').addEventListener('click', () => {
+  demoVideo.currentTime = Math.max(demoVideo.currentTime - 10, 0);
+});
+document.getElementById('demo-skip').addEventListener('click', () => {
+  const dur = demoVideo.duration;
+  if (!isFinite(dur) || dur <= 0) return;
+  demoVideo.currentTime = Math.min(demoVideo.currentTime + 10, dur);
+});
+
+const closeDemoOverlay = () => {
+  demoOverlay.classList.remove('open');
+  demoVideo.pause();
+};
+document.getElementById('btn-demo').addEventListener('click', () => {
+  demoOverlay.classList.add('open');
+  demoTime.textContent = `${fmt(demoVideo.currentTime)} / ${fmt(demoVideo.duration || 0)}`;
+  demoVideo.play();
+});
+document.getElementById('demo-close').addEventListener('click', closeDemoOverlay);
+demoOverlay.addEventListener('click', e => { if (e.target === demoOverlay) closeDemoOverlay(); });
+
+// ═══════════════════════════════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════════════════════════════
+// Body class hides in-app chrome while title/instructions overlays show.
+document.body.classList.add('boot-stage');
+
+document.getElementById('start-btn').addEventListener('click', async ()=>{
+  const ob = document.getElementById('onboarding');
+  const is = document.getElementById('instructions');
+  // Stage 1: deepen title bg to match instructions density (background stays consistent)
+  ob.classList.add('is-leaving');
+  showingInstructions = true;
+  setTimeout(()=>{
+    // Stage 2: crossfade — title out, instructions in
+    ob.classList.add('is-gone');
+    is.style.display = 'flex';
+    requestAnimationFrame(()=> requestAnimationFrame(()=> is.classList.add('is-in')));
+  }, 320);
+  await loadMediaPipe();
+  await startCam();
+});
+
+// Clay spins behind the title screen immediately on load
+animate();
+
+document.getElementById('instr-start-btn').addEventListener('click', ()=>{
+  showingInstructions = false;
+  document.getElementById('instructions').classList.add('is-gone');
+  setTimeout(()=> document.body.classList.remove('boot-stage'), 600);
+});
+
+// Enter key advances the active overlay
+window.addEventListener('keydown', (e)=>{
+  if (e.key !== 'Enter') return;
+  const ob = document.getElementById('onboarding');
+  const is = document.getElementById('instructions');
+  if (!ob.classList.contains('is-gone'))                                        document.getElementById('start-btn').click();
+  else if (!is.classList.contains('is-gone') && is.style.display !== 'none')   document.getElementById('instr-start-btn').click();
+});
+
+</script>
+</body>
+</html>
